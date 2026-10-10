@@ -893,7 +893,7 @@ class Yonetim(commands.Cog):
 
         if lang == "en":
             satirlar = [
-                ("🌐 Server Language", "**🇬🇧 English**", "Click buttons below or `/language`"),
+                ("🌐 Server Language", "**🇬🇧 English**", "/dil tr · en  (or the buttons below)"),
                 ("📋 Log Channel", kanal(ayar.get('log_kanal_id')), "!logayarla #channel"),
                 ("⚠️ Warning Channel", kanal(ayar.get('uyari_kanal_id')), "!uyarayarla #channel"),
                 ("👋 Welcome Channel", kanal(ayar.get('hosgeldin_kanal_id')), "!hosgeldinayarla #channel [msg]"),
@@ -909,7 +909,7 @@ class Yonetim(commands.Cog):
             embed.set_footer(text="Unconfigured features are disabled on this server • MezarBot")
         else:
             satirlar = [
-                ("🌐 Sunucu Dili", "**🇹🇷 Türkçe**", "Aşağıdaki butonları veya `/dil` komutunu kullanın"),
+                ("🌐 Sunucu Dili", "**🇹🇷 Türkçe**", "/dil tr · en  (ya da aşağıdaki butonlar)"),
                 ("📋 Log kanalı", kanal(ayar.get('log_kanal_id')), "!logayarla #kanal"),
                 ("⚠️ Uyarı kanalı", kanal(ayar.get('uyari_kanal_id')), "!uyarayarla #kanal"),
                 ("👋 Hoşgeldin kanalı", kanal(ayar.get('hosgeldin_kanal_id')), "!hosgeldinayarla #kanal [mesaj]"),

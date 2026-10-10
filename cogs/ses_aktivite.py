@@ -156,7 +156,7 @@ class SesAktivite(commands.Cog):
         for i, (r, display) in enumerate(zip(rows, isimler)):
             saat = r['total'] // 3600
             dakika = (r['total'] % 3600) // 60
-            sure_str = f"{saat}s {dakika}dk" if saat else f"{dakika}dk"
+            sure_str = f"{saat} sa {dakika} dk" if saat else f"{dakika} dk"
             lines.append(f"{medals[i]} **{display}** — {sure_str} ({r['sessions']} oturum)")
         e.description = "\n".join(lines)
         await interaction.followup.send(embed=e)
@@ -193,7 +193,7 @@ class SesAktivite(commands.Cog):
             t = toplam['total']
             saat, dakika = t // 3600, (t % 3600) // 60
             e.add_field(name="⏱️ Toplam", value=f"**{saat} saat {dakika} dk**", inline=True)
-            e.add_field(name="📅 Bu hafta", value=f"**{hafta_sure // 3600}s {(hafta_sure % 3600) // 60}dk**", inline=True)
+            e.add_field(name="📅 Bu hafta", value=f"**{hafta_sure // 3600} sa {(hafta_sure % 3600) // 60} dk**", inline=True)
             e.add_field(name="🔁 Oturum", value=f"**{toplam['sessions']}**", inline=True)
             if top_kanal:
                 lines = []
@@ -202,7 +202,7 @@ class SesAktivite(commands.Cog):
                     if not ch: continue
                     s = r['t']
                     saat, dakika = s // 3600, (s % 3600) // 60
-                    lines.append(f"🔊 **{ch.name}** — {saat}s {dakika}dk")
+                    lines.append(f"🔊 **{ch.name}** — {saat} sa {dakika} dk")
                 e.add_field(name="📊 En çok bulunduğu kanallar", value="\n".join(lines), inline=False)
         else:
             e.description = "Henüz ses kanalı aktivitesi kaydedilmemiş."

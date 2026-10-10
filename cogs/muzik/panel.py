@@ -131,8 +131,8 @@ def bosta_embedi(guild, istek_kanali=False, prefix="!", son_mesaj=None):
                     value="🔴 YouTube · 🎵 YouTube Music · 🟢 Spotify · 🟠 SoundCloud · 🔗 Doğrudan ses linki",
                     inline=False)
     embed.add_field(name="✨ Öne Çıkanlar",
-                    value="🎛️ Bassboost · Nightcore · Vaporwave · 8D · Karaoke · Hız · Normalizasyon\n"
-                          "📻 Otomatik oynatma · 🎤 Senkron sözler · ❤️ Kişisel listeler",
+                    value="📻 Otomatik oynatma · 📶 Ses dengeleme · 🎤 Senkron sözler · ❤️ Kişisel listeler\n"
+                          "🛟 YouTube çalamazsa SoundCloud yedeği",
                     inline=False)
     embed.set_footer(text="MezarBot Premium Müzik")
     if guild and guild.icon:

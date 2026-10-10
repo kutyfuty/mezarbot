@@ -282,7 +282,7 @@ class Yardim(commands.Cog):
                 f"{AYIRICI}\n"
                 "Select a category from the dropdown menu below\nto explore all available commands.\n\n"
                 "💡 **All commands can be used with both `/` (slash) and `!` (prefix)!**\n"
-                "*(For example: `/help` or `!help`, `/draw` or `!draw`, `/play` or `!play`)*\n"
+                "*(For example: `/help` or `!help`, `/draw` or `!draw`, `/oynat` or `!play`)*\n"
                 f"{AYIRICI}\n\n"
                 "> 🎵 **Music** ── Play songs, queues, playlists\n"
                 "> 🛡️ **Moderation & Settings** ── Moderation tools, server settings\n"
