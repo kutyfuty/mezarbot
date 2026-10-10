@@ -154,6 +154,39 @@ def main():
     kontrol(asyncio.run(dene()) == ("en", "tr", "tr"), "dilli_gorev: görev sunucunun dilinde, çağıranın dili değişmez")
     kontrol(dil.dil_ayarla(type("I", (), {"guild_id": 555})()) == "en", "dil_ayarla: guild_id taşıyan nesneden sunucu dili")
 
+    print("\n[3b] Otomatik dil kancaları (buton / olay / slash)")
+    import discord
+    import types
+    dil.kancalari_kur()
+    database.sunucu_dil_ayarla(556, "tr")
+    sonuc = {}
+
+    async def kancalar():
+        class V(discord.ui.View):
+            @discord.ui.button(label="x")
+            async def b(self, interaction, button):
+                sonuc["buton"] = dil.aktif_dil()
+
+        v = V()
+
+        async def izin(_i):
+            return True
+        v.interaction_check = izin
+        await v._scheduled_task(v.children[0], types.SimpleNamespace(guild_id=555, guild=None, user=types.SimpleNamespace(id=1), data={}, response=types.SimpleNamespace(is_done=lambda: True)))
+        c = discord.Client(intents=discord.Intents.none())
+
+        async def olay(_m):
+            sonuc.setdefault("olay", []).append(dil.aktif_dil())
+        await c._run_event(olay, "message", types.SimpleNamespace(guild=types.SimpleNamespace(id=555)))
+        await c._run_event(olay, "message", types.SimpleNamespace(guild=types.SimpleNamespace(id=556)))
+        await dil.DilAgaci(c).interaction_check(types.SimpleNamespace(guild_id=555, guild=None))
+        sonuc["slash"] = dil.aktif_dil()
+    asyncio.run(kancalar())
+    kontrol(sonuc.get("buton") == "en", "buton tıklaması sunucunun dilinde (View görevi)")
+    kontrol(sonuc.get("olay") == ["en", "tr"], "olay dinleyicileri sunucunun dilinde (EN sunucu → en, TR sunucu → tr)")
+    kontrol(sonuc.get("slash") == "en", "slash komutu sunucunun dilinde (DilAgaci)")
+    dil.dil_zorla("tr")
+
     print("\n[4] Slash çevirmeni")
     from discord import app_commands, Locale
 
