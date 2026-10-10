@@ -1,5 +1,7 @@
 # 🪦 MezarBot
 
+[![test](https://github.com/kutyfuty/mezarbot/actions/workflows/test.yml/badge.svg)](https://github.com/kutyfuty/mezarbot/actions/workflows/test.yml) ![Python](https://img.shields.io/badge/python-3.11%2B-blue) ![Lisans](https://img.shields.io/badge/lisans-MIT-green)
+
 Kendi sunucunda çalıştırabileceğin, **Türkçe** ve çok sunuculu bir Discord botu: takılmayan müzik, özel ses odaları,
 moderasyon, ses istatistikleri, yapay zekâ sohbeti/çizimi, seslendirme ve anlık çeviri. Sunucu başına TR / EN dil seçeneği.
 
