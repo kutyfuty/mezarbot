@@ -21,6 +21,7 @@ import aiohttp
 
 from yapilandirma import BOT_DIZINI, YTDL_CACHE_DIZINI, YTDLP_JS_CALISMA_ORTAMLARI
 from .kuyruk import Parca, normallestir
+from dil import _t
 
 logger = logging.getLogger('MezarBot.Muzik.Kaynak')
 
@@ -172,13 +173,13 @@ def hata_sebebi(hata):
     if isinstance(hata, CozmeHatasi):
         return hata
     if isinstance(hata, (asyncio.TimeoutError, TimeoutError)):
-        return CozmeHatasi("zaman aşımı", kalici=False, ham="timeout")
+        return CozmeHatasi(_t("zaman aşımı"), kalici=False, ham="timeout")
     ham = str(hata)
     kucuk = ham.lower()
     for kelimeler, sebep, kalici in _HATA_KALIPLARI:
         if any(k in kucuk for k in kelimeler):
             return CozmeHatasi(sebep, kalici=kalici, ham=ham[:300])
-    return CozmeHatasi("çözülemedi", kalici=False, ham=ham[:300])
+    return CozmeHatasi(_t("çözülemedi"), kalici=False, ham=ham[:300])
 
 
 # ══════════════════════════════════════════════
@@ -238,7 +239,7 @@ class IsciHavuzu:
             for istek_id in list(isci.bekleyen):
                 fut = self._bekleyen.pop(istek_id, None)
                 if fut is not None and not fut.done():
-                    fut.set_exception(IsciHatasi("işçi süreci kapandı"))
+                    fut.set_exception(IsciHatasi(_t("işçi süreci kapandı")))
             if isci.surec.returncode is None:
                 try:
                     isci.surec.kill()
@@ -260,7 +261,7 @@ class IsciHavuzu:
 
     async def calistir(self, islem, zaman_asimi, **arg):
         if self._kapandi:
-            raise IsciHatasi("işçi süreci kapandı")
+            raise IsciHatasi(_t("işçi süreci kapandı"))
         isci = await self._isci_sec()
         istek_id = next(self._sayac)
         fut = asyncio.get_running_loop().create_future()
@@ -271,7 +272,7 @@ class IsciHavuzu:
             await isci.surec.stdin.drain()
             yanit = await asyncio.wait_for(fut, timeout=zaman_asimi)
         except (BrokenPipeError, ConnectionResetError):
-            raise IsciHatasi("işçi süreci kapandı")
+            raise IsciHatasi(_t("işçi süreci kapandı"))
         except asyncio.TimeoutError:
             isci.zaman_asimi += 1
             if isci.zaman_asimi >= 3:   # takılmış iş parçacıkları birikti → süreci yenile
@@ -287,7 +288,7 @@ class IsciHavuzu:
         if yanit.get("ok"):
             isci.zaman_asimi = 0
             return yanit.get("sonuc")
-        raise IsciHatasi(yanit.get("hata") or "bilinmeyen hata", yanit.get("tur", ""), yanit.get("http_status"))
+        raise IsciHatasi(yanit.get("hata") or _t("bilinmeyen hata"), yanit.get("tur", ""), yanit.get("http_status"))
 
     async def kapat(self):
         self._kapandi = True
@@ -505,7 +506,7 @@ class Cozucu:
                 try:
                     bilgi = await self._ytdl(secenek, hedef, TEK_ZAMAN_ASIMI)
                     if not bilgi or not bilgi.get('url'):
-                        raise CozmeHatasi("çalınabilir ses formatı yok")
+                        raise CozmeHatasi(_t("çalınabilir ses formatı yok"))
                     self._bilgi_uygula(parca, bilgi)
                     return parca
                 except (IsciHatasi, CozmeHatasi, asyncio.TimeoutError) as e:
@@ -536,7 +537,7 @@ class Cozucu:
         yedek = await self._soundcloud_yedek(parca)
         if yedek is not None:
             return yedek
-        raise son_hata or CozmeHatasi("çözülemedi")
+        raise son_hata or CozmeHatasi(_t("çözülemedi"))
 
     async def _yedek_arama_metni(self, parca):
         """SoundCloud'da aranacak metin: arama metni → sanatçı + başlık → (başlıksız YouTube linki) oEmbed başlığı."""
@@ -604,7 +605,7 @@ class Cozucu:
         adaylar = await self.ara(metin, adet=5, platform=platform)
         sirali = en_iyi_aday(adaylar, parca.baslik or metin, parca.beklenen_sure, haric)
         if not sirali:
-            raise CozmeHatasi("uygun sonuç bulunamadı")
+            raise CozmeHatasi(_t("uygun sonuç bulunamadı"))
         return _entry_url(sirali[0])
 
     @staticmethod
@@ -699,7 +700,7 @@ class Cozucu:
         """Spotify track/album/playlist → (baslik, [Parca]). Önce Web API (client credentials),
         başarısızsa (anahtar yok / 403 'premium şartı' / 429) herkese açık embed sayfası."""
         if tur == 'artist':
-            raise CozmeHatasi("Spotify sanatçı linkleri desteklenmiyor — şarkı, albüm ya da playlist linki gönder.")
+            raise CozmeHatasi(_t("Spotify sanatçı linkleri desteklenmiyor — şarkı, albüm ya da playlist linki gönder."))
         if self.spotify_aktif and time.time() >= self._sp_kapali_bitis:
             try:
                 async with self._sem:

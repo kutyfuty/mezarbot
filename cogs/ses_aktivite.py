@@ -20,6 +20,7 @@ import logging
 from collections import defaultdict
 from database import db
 from arayuz import sayi_formatla, Renkler
+from dil import _t
 
 logger = logging.getLogger('MezarBot.SesAktivite')
 
@@ -107,15 +108,15 @@ class SesAktivite(commands.Cog):
     # ── Slash: leaderboard ─────────────────────────────────────
     @sesstat_grup.command(name="top", description="Sunucuda en çok ses kanalında kalan kullanıcılar (tüm zamanlar)")
     async def slash_top(self, interaction: discord.Interaction):
-        await self._leaderboard_gonder(interaction, sure_gun=None, baslik="🏆 Ses Kanalı Şampiyonları (Tüm Zamanlar)")
+        await self._leaderboard_gonder(interaction, sure_gun=None, baslik=_t("🏆 Ses Kanalı Şampiyonları (Tüm Zamanlar)"))
 
     @sesstat_grup.command(name="hafta", description="Bu hafta en çok ses kanalında kalan kullanıcılar")
     async def slash_hafta(self, interaction: discord.Interaction):
-        await self._leaderboard_gonder(interaction, sure_gun=7, baslik="📅 Bu Hafta Ses Şampiyonları")
+        await self._leaderboard_gonder(interaction, sure_gun=7, baslik=_t("📅 Bu Hafta Ses Şampiyonları"))
 
     @sesstat_grup.command(name="ay", description="Bu ay en çok ses kanalında kalan kullanıcılar")
     async def slash_ay(self, interaction: discord.Interaction):
-        await self._leaderboard_gonder(interaction, sure_gun=30, baslik="📆 Bu Ay Ses Şampiyonları")
+        await self._leaderboard_gonder(interaction, sure_gun=30, baslik=_t("📆 Bu Ay Ses Şampiyonları"))
 
     async def _leaderboard_gonder(self, interaction, sure_gun, baslik):
         await interaction.response.defer()
@@ -137,7 +138,7 @@ class SesAktivite(commands.Cog):
         rows = await asyncio.to_thread(_q)
         e = discord.Embed(title=baslik, color=Renkler.MUZIK if hasattr(Renkler, 'MUZIK') else 0x9B59B6)
         if not rows:
-            e.description = "Henüz veri yok. Kullanıcılar VC'ye girip çıksın."
+            e.description = _t("Henüz veri yok. Kullanıcılar VC'ye girip çıksın.")
             return await interaction.followup.send(embed=e)
         medals = ['🥇', '🥈', '🥉'] + ['▫️'] * 7
 
@@ -156,8 +157,8 @@ class SesAktivite(commands.Cog):
         for i, (r, display) in enumerate(zip(rows, isimler)):
             saat = r['total'] // 3600
             dakika = (r['total'] % 3600) // 60
-            sure_str = f"{saat} sa {dakika} dk" if saat else f"{dakika} dk"
-            lines.append(f"{medals[i]} **{display}** — {sure_str} ({r['sessions']} oturum)")
+            sure_str = _t("{saat} sa {dakika} dk", saat=saat, dakika=dakika) if saat else _t("{dakika} dk", dakika=dakika)
+            lines.append(_t("{medals} **{display}** — {sure_str} ({r} oturum)", medals=medals[i], display=display, sure_str=sure_str, r=r['sessions']))
         e.description = "\n".join(lines)
         await interaction.followup.send(embed=e)
 
@@ -186,15 +187,15 @@ class SesAktivite(commands.Cog):
             return toplam, hafta, c.fetchall()
         toplam, hafta_sure, top_kanal = await asyncio.to_thread(_q)
 
-        e = discord.Embed(title=f"🎙️ {target.display_name} — Ses İstatistikleri",
+        e = discord.Embed(title=_t("🎙️ {display_name} — Ses İstatistikleri", display_name=target.display_name),
                           color=target.color.value if target.color.value else 0x9B59B6)
         e.set_thumbnail(url=target.display_avatar.url)
         if toplam['total']:
             t = toplam['total']
             saat, dakika = t // 3600, (t % 3600) // 60
-            e.add_field(name="⏱️ Toplam", value=f"**{saat} saat {dakika} dk**", inline=True)
-            e.add_field(name="📅 Bu hafta", value=f"**{hafta_sure // 3600} sa {(hafta_sure % 3600) // 60} dk**", inline=True)
-            e.add_field(name="🔁 Oturum", value=f"**{toplam['sessions']}**", inline=True)
+            e.add_field(name=_t("⏱️ Toplam"), value=_t("**{saat} saat {dakika} dk**", saat=saat, dakika=dakika), inline=True)
+            e.add_field(name=_t("📅 Bu hafta"), value=_t("**{d1} sa {d3} dk**", d1=hafta_sure // 3600, d3=(hafta_sure % 3600) // 60), inline=True)
+            e.add_field(name=_t("🔁 Oturum"), value=f"**{toplam['sessions']}**", inline=True)
             if top_kanal:
                 lines = []
                 for r in top_kanal:
@@ -202,10 +203,10 @@ class SesAktivite(commands.Cog):
                     if not ch: continue
                     s = r['t']
                     saat, dakika = s // 3600, (s % 3600) // 60
-                    lines.append(f"🔊 **{ch.name}** — {saat} sa {dakika} dk")
-                e.add_field(name="📊 En çok bulunduğu kanallar", value="\n".join(lines), inline=False)
+                    lines.append(_t("🔊 **{name}** — {saat} sa {dakika} dk", name=ch.name, saat=saat, dakika=dakika))
+                e.add_field(name=_t("📊 En çok bulunduğu kanallar"), value="\n".join(lines), inline=False)
         else:
-            e.description = "Henüz ses kanalı aktivitesi kaydedilmemiş."
+            e.description = _t("Henüz ses kanalı aktivitesi kaydedilmemiş.")
         await interaction.followup.send(embed=e)
 
     # ── Slash: admin — kanal ayarı ─────────────────────────────
@@ -222,7 +223,7 @@ class SesAktivite(commands.Cog):
                           (interaction.guild.id, kanal.id))
             db.commit()
         await asyncio.to_thread(_q)
-        msg = f"✅ Artık **tüm** ses kanalları izleniyor." if not kanal else f"✅ Sadece {kanal.mention} izleniyor."
+        msg = _t("✅ Artık **tüm** ses kanalları izleniyor.") if not kanal else _t("✅ Sadece {mention} izleniyor.", mention=kanal.mention)
         await interaction.followup.send(msg)
 
     @sesstat_grup.command(name="sifirla", description="Tüm ses aktivite verisini siler (GERİ ALINAMAZ)")
@@ -235,7 +236,7 @@ class SesAktivite(commands.Cog):
             db.commit()
             return c.rowcount
         n = await asyncio.to_thread(_q)
-        await interaction.followup.send(f"🗑️ {n} ses aktivite kaydı silindi.")
+        await interaction.followup.send(_t("🗑️ {n} ses aktivite kaydı silindi.", n=n))
 
 
 async def setup(bot: commands.Bot):

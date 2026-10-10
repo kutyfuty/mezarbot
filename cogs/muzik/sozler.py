@@ -10,6 +10,7 @@ import re
 from collections import OrderedDict
 
 import aiohttp
+from dil import _t
 
 logger = logging.getLogger('MezarBot.Muzik.Sozler')
 
@@ -81,7 +82,7 @@ def canli_pencere(senkron, konum, once=3, sonra=5):
         yazi = senkron[j][1] or "♪"
         satirlar.append(f"**▶ {yazi}**" if j == i else f"-# {yazi}" if j < i else yazi)
     if i == -1:
-        satirlar.insert(0, "*♪ (giriş)*")
+        satirlar.insert(0, _t("*♪ (giriş)*"))
     return "\n".join(satirlar)
 
 
@@ -102,7 +103,7 @@ def sayfalara_bol(metin, limit=1800):
             mevcut = f"{mevcut}\n{satir}" if mevcut else satir
     if mevcut.strip():
         sayfalar.append(mevcut)
-    return sayfalar or ["*(boş)*"]
+    return sayfalar or [_t("*(boş)*")]
 
 
 class SozIstemcisi:

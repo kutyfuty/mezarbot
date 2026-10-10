@@ -22,6 +22,7 @@ from discord.ext import commands
 
 from yapilandirma import EK_COGLAR, ENV_DOSYA, GECICI_DIZIN, KILIT_DOSYA, LOG_DOSYA, PREFIX, SAHIP_ID
 from database import EkonomiMigrasyonHatasi, veritabanini_kur
+from dil import DilAgaci, DilCevirmeni, _t, kancalari_kur
 
 try:
     import certifi
@@ -100,7 +101,9 @@ intents.members = True                # [PRIVILEGED] hoşgeldin/otorol, get_memb
 
 # owner_id: commands.is_owner() ile config.json'daki sahip_id aynı kaynaktan gelsin
 # chunk_guilds_at_startup=False: Başlangıçta tüm üyeleri çekip Gateway'i tıkamaz, ihtiyaç anında önbelleğe alır
-bot = commands.Bot(command_prefix=PREFIX, intents=intents, help_command=None, owner_id=SAHIP_ID, chunk_guilds_at_startup=False)
+kancalari_kur()   # buton/menü/modal/olaylar sunucunun dilinde çalışsın
+bot = commands.Bot(command_prefix=PREFIX, intents=intents, help_command=None, owner_id=SAHIP_ID,
+                   chunk_guilds_at_startup=False, tree_cls=DilAgaci)
 
 # Yüklenecek Vagonlar
 vagonlar = [
@@ -144,7 +147,7 @@ async def on_command_error(ctx, error):
     # Cooldown hatası
     if isinstance(error, commands.CommandOnCooldown):
         kalan_sure = int(error.retry_after)
-        uyari_mesaji = await ctx.send(f"⏳ **Yavaşla!** Sistemi soğutuyoruz. Yeni bir işlem yapmak için **{kalan_sure} saniye** daha beklemelisin.")
+        uyari_mesaji = await ctx.send(_t("⏳ **Yavaşla!** Sistemi soğutuyoruz. Yeni bir işlem yapmak için **{kalan_sure} saniye** daha beklemelisin.", kalan_sure=kalan_sure))
         await asyncio.sleep(7)
         try:
             await uyari_mesaji.delete()
@@ -154,32 +157,32 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.CommandNotFound):
         t = difflib.get_close_matches(ctx.invoked_with, [c.name for c in bot.commands], n=1, cutoff=0.5)
         if t:
-            await ctx.send(f"Bunu mu demek istedin? 👉 **{PREFIX}{t[0]}**", delete_after=5)
+            await ctx.send(_t("Bunu mu demek istedin? 👉 **{PREFIX}{t}**", PREFIX=PREFIX, t=t[0]), delete_after=5)
     # Eksik argüman
     elif isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send(f"⚠️ Eksik parametre: `{error.param.name}`. Kullanım için `{PREFIX}yardim` yaz.", delete_after=7)
+        await ctx.send(_t("⚠️ Eksik parametre: `{name}`. Kullanım için `{PREFIX}yardim` yaz.", name=error.param.name, PREFIX=PREFIX), delete_after=7)
     # Yetki hatası
     elif isinstance(error, commands.MissingPermissions):
-        await ctx.send("🚫 Bu komutu kullanmak için yetkin yok!", delete_after=5)
+        await ctx.send(_t("🚫 Bu komutu kullanmak için yetkin yok!"), delete_after=5)
     # DM'de sunucu komutu
     elif isinstance(error, commands.NoPrivateMessage):
         # Özel (Türkçe) mesajla fırlatıldıysa onu göster (ör. ekonomi: "sunucu bazlıdır"),
         # discord.py'nin İngilizce varsayılan mesajı yerine genel Türkçe mesaj.
         mesaj = str(error)
         if not mesaj or mesaj == str(commands.NoPrivateMessage()):
-            mesaj = "❌ Bu komut sadece sunucularda kullanılabilir."
+            mesaj = _t("❌ Bu komut sadece sunucularda kullanılabilir.")
         await ctx.send(mesaj, delete_after=10)
     # Sahip komutu
     elif isinstance(error, commands.NotOwner):
-        await ctx.send("🚫 Bu komut sadece bot sahibine özel.", delete_after=5)
+        await ctx.send(_t("🚫 Bu komut sadece bot sahibine özel."), delete_after=5)
     # Check hatası (yönetici / VIP kontrolü vb.)
     elif isinstance(error, commands.CheckFailure):
-        await ctx.send("🚫 Bu komut için yetkin yok! (Sunucu yöneticisi — *Yönetici* / *Sunucuyu Yönet* yetkisi — gerekir)", delete_after=5)
+        await ctx.send(_t("🚫 Bu komut için yetkin yok! (Sunucu yöneticisi — *Yönetici* / *Sunucuyu Yönet* yetkisi — gerekir)"), delete_after=5)
     # Diğer hatalar
     else:
         logger.error(f"Komut Hatası ({ctx.command}): {error}", exc_info=True)
         try:
-            await ctx.send(f"⚠️ Beklenmedik bir hata oluştu. Lütfen tekrar dene.", delete_after=7)
+            await ctx.send(_t("⚠️ Beklenmedik bir hata oluştu. Lütfen tekrar dene."), delete_after=7)
         except (aiohttp.ClientConnectorCertificateError, aiohttp.ClientConnectorError):
             logger.warning(f"Hata mesajı gönderilemedi (ağ/SSL sorunu): {ctx.command}")
 
@@ -189,19 +192,19 @@ async def on_tree_error(interaction: discord.Interaction, error: app_commands.Ap
     """Slash komutları için genel hata yakalayıcı."""
     if isinstance(error, app_commands.CommandOnCooldown):
         kalan = int(error.retry_after)
-        mesaj = f"⏳ Yavaşla! Bu komut soğuma süresinde. **{kalan} saniye** sonra tekrar deneyebilirsin."
+        mesaj = _t("⏳ Yavaşla! Bu komut soğuma süresinde. **{kalan} saniye** sonra tekrar deneyebilirsin.", kalan=kalan)
     elif isinstance(error, app_commands.MissingPermissions):
-        mesaj = "🚫 Bu komutu kullanmak için gerekli Discord yetkisine sahip değilsin."
+        mesaj = _t("🚫 Bu komutu kullanmak için gerekli Discord yetkisine sahip değilsin.")
     elif isinstance(error, app_commands.BotMissingPermissions):
-        mesaj = "🚫 Bot bu komutu çalıştırmak için gerekli sunucu yetkilerine sahip değil."
+        mesaj = _t("🚫 Bot bu komutu çalıştırmak için gerekli sunucu yetkilerine sahip değil.")
     elif isinstance(error, app_commands.CheckFailure):
-        mesaj = "🚫 Bu komutu kullanmak için yetkin yok (Yönetici yetkisi gereklidir)."
+        mesaj = _t("🚫 Bu komutu kullanmak için yetkin yok (Yönetici yetkisi gereklidir).")
     elif isinstance(error, app_commands.NoPrivateMessage):
-        mesaj = "❌ Bu komut sadece sunucularda kullanılabilir."
+        mesaj = _t("❌ Bu komut sadece sunucularda kullanılabilir.")
     else:
         cmd_name = interaction.command.name if interaction.command else "Bilinmeyen"
         logger.error(f"Slash Komut Hatası ({cmd_name}): {error}", exc_info=True)
-        mesaj = "⚠️ İşlem sırasında beklenmedik bir hata oluştu. Lütfen tekrar dene."
+        mesaj = _t("⚠️ İşlem sırasında beklenmedik bir hata oluştu. Lütfen tekrar dene.")
 
     try:
         if interaction.response.is_done():
@@ -235,6 +238,7 @@ async def main(token):
         loop.add_signal_handler(sinyal, lambda s=sinyal: asyncio.create_task(_kapat(s)))
 
     async with bot:
+        await bot.tree.set_translator(DilCevirmeni())   # slash açıklamaları İngilizce istemcilerde İngilizce
         for vagon in vagonlar:
             try:
                 await bot.load_extension(vagon)

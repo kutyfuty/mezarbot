@@ -33,6 +33,7 @@ from arayuz import FFMPEG_YOLU
 from .filtreler import FiltreDurumu
 from .kaynaklar import CozmeHatasi, hata_sebebi
 from .kuyruk import DONGU_KAPALI, DONGU_SARKI, Gecmis, Kuyruk, VARSAYILAN_KUYRUK_LIMITI
+from dil import _t, dilli_gorev
 
 logger = logging.getLogger('MezarBot.Muzik.Oynatici')
 
@@ -299,7 +300,7 @@ class Oynatici:
 
     def gorev(self, coro, ad=None):
         """Arka plan görevi — referansı tutulur (GC'ye gitmesin), kapanışta iptal edilir."""
-        t = asyncio.create_task(coro, name=ad)
+        t = dilli_gorev(coro, self.guild_id, name=ad)   # mesajlar sunucunun dilinde
         self._gorevler.add(t)
         t.add_done_callback(self._gorev_bitti)
         return t
@@ -415,9 +416,9 @@ class Oynatici:
                     await self.cog.cozucu.coz(parca)
                 except CozmeHatasi as h:
                     ardisik_hata += 1
-                    await self.cog.bildir(self.guild_id, f"⚠️ **{parca.gosterim(60)}** atlandı: {h.sebep}")
+                    await self.cog.bildir(self.guild_id, _t("⚠️ **{gosterim}** atlandı: {sebep}", gosterim=parca.gosterim(60), sebep=_t(h.sebep)))
                     if ardisik_hata >= ARDISIK_HATA_LIMITI:
-                        await self.cog.bildir(self.guild_id, "❌ Üst üste çok fazla parça çözülemedi, oynatma durduruldu.")
+                        await self.cog.bildir(self.guild_id, _t("❌ Üst üste çok fazla parça çözülemedi, oynatma durduruldu."))
                         self._bosa_gec()
                         await self.cog.panel_guncelle(self.guild_id)
                         return
@@ -429,7 +430,7 @@ class Oynatici:
                     self._bosa_gec()
                     return
                 ardisik_hata += 1
-                await self.cog.bildir(self.guild_id, f"⚠️ **{parca.gosterim(60)}** akışı başlatılamadı, atlanıyor.")
+                await self.cog.bildir(self.guild_id, _t("⚠️ **{gosterim}** akışı başlatılamadı, atlanıyor.", gosterim=parca.gosterim(60)))
                 parca = self.kuyruk.al()
             await self.cog.panel_guncelle(self.guild_id)
             self._on_coz_baslat()
@@ -487,9 +488,9 @@ class Oynatici:
                         await self.cog.panel_guncelle(self.guild_id)
                         return
             except CozmeHatasi as h:
-                await self.cog.bildir(self.guild_id, f"⚠️ **{parca.gosterim(60)}** yeniden bağlanamadı: {h.sebep}")
+                await self.cog.bildir(self.guild_id, _t("⚠️ **{gosterim}** yeniden bağlanamadı: {sebep}", gosterim=parca.gosterim(60), sebep=_t(h.sebep)))
         elif erken:
-            await self.cog.bildir(self.guild_id, f"⚠️ **{parca.gosterim(60)}** akışı koptu, sıradakine geçiliyor.")
+            await self.cog.bildir(self.guild_id, _t("⚠️ **{gosterim}** akışı koptu, sıradakine geçiliyor.", gosterim=parca.gosterim(60)))
         await self.sonrakine_gec(biten=parca)
 
     # ── Ön çözme, ısıtma, otomatik oynatma ──
@@ -591,7 +592,7 @@ class Oynatici:
         me = self.guild.me if self.guild else None
         for p in yeniler:
             p.isteyen_id = me.id if me else 0
-            p.isteyen_ad = "Otomatik Oynatma"
+            p.isteyen_ad = _t("Otomatik Oynatma")
             p.isteyen_avatar = str(me.display_avatar.url) if me else ""
         eklenen = self.kuyruk.toplu_ekle(yeniler)
         if eklenen:
@@ -660,7 +661,7 @@ class Oynatici:
                     await self.cog.cozucu.coz(parca, zorla=True)
             except CozmeHatasi as h:
                 self.nesil = eski_nesil
-                await self.cog.bildir(self.guild_id, f"⚠️ Akış yenilenemedi: {h.sebep}")
+                await self.cog.bildir(self.guild_id, _t("⚠️ Akış yenilenemedi: {sebep}", sebep=_t(h.sebep)))
                 return False
             if not await self._cal_dayanikli(parca, konum):
                 if self.caliyor_mu():

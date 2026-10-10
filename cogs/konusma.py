@@ -8,6 +8,7 @@ import uuid
 from database import vip_kontrol
 from arayuz import Renkler, premium_embed, hata_embed, basari_embed, FFMPEG_YOLU
 from yapilandirma import GECICI_DIZIN
+from dil import _t, aktif_dil
 
 logger = logging.getLogger('MezarBot.Konusma')
 
@@ -17,6 +18,8 @@ class Konusma(commands.Cog):
         self.bot = bot
         self.male_voice = "tr-TR-AhmetNeural"
         self.female_voice = "tr-TR-EmelNeural"
+        # İngilizce sunucularda İngilizce sesler (Türkçe ses İngilizce metni bozuk okur)
+        self.en_sesler = {"tr-TR-AhmetNeural": "en-US-GuyNeural", "tr-TR-EmelNeural": "en-US-JennyNeural"}
         # Erkek ses: derin ayar (yavaş + düşük perde); kadın sesi varsayılan kalır
         self.voice_ayar = {"tr-TR-AhmetNeural": {"rate": "-10%", "pitch": "-30Hz"}}
 
@@ -39,17 +42,17 @@ class Konusma(commands.Cog):
     async def _seslendir(self, ctx, metin, voice):
         is_vip = vip_kontrol(ctx.author)
         if not is_vip:
-            return await ctx.send(embed=hata_embed("Bu komutu sadece **VIP** üyeler kullanabilir!"), delete_after=5)
+            return await ctx.send(embed=hata_embed(_t("Bu komutu sadece **VIP** üyeler kullanabilir!")), delete_after=5)
 
         if not ctx.author.voice:
-            return await ctx.send(embed=hata_embed("Önce bir ses kanalına girmelisin!"), delete_after=5)
+            return await ctx.send(embed=hata_embed(_t("Önce bir ses kanalına girmelisin!")), delete_after=5)
 
         if not metin.strip():
-            return await ctx.send(embed=hata_embed("Boş metin gönderilemez!"), delete_after=5)
+            return await ctx.send(embed=hata_embed(_t("Boş metin gönderilemez!")), delete_after=5)
 
         limit = 2000 if is_vip else 300
         if len(metin) > limit:
-            return await ctx.send(embed=hata_embed(f"Mesaj çok uzun! (Sınırınız: {limit} karakter)"), delete_after=5)
+            return await ctx.send(embed=hata_embed(_t("Mesaj çok uzun! (Sınırınız: {limit} karakter)", limit=limit)), delete_after=5)
 
         voice_channel = ctx.author.voice.channel
         vc = ctx.voice_client
@@ -58,7 +61,7 @@ class Konusma(commands.Cog):
         if vc and vc.is_playing():
             muzik_cog = self.bot.get_cog('Muzik')
             if muzik_cog and ctx.guild.id in muzik_cog.guncel_sarki:
-                return await ctx.send(embed=hata_embed("Şu an müzik çalıyor! Önce müziği kapat veya bitir."), delete_after=5)
+                return await ctx.send(embed=hata_embed(_t("Şu an müzik çalıyor! Önce müziği kapat veya bitir.")), delete_after=5)
 
         if vc:
             if vc.channel.id != voice_channel.id:
@@ -67,17 +70,19 @@ class Konusma(commands.Cog):
             try:
                 vc = await voice_channel.connect()
             except (discord.Forbidden, discord.ClientException) as e:
-                return await ctx.send(embed=hata_embed(f"Ses kanalına bağlanılamadı: {e}"), delete_after=7)
+                return await ctx.send(embed=hata_embed(_t("Ses kanalına bağlanılamadı: {e}", e=e)), delete_after=7)
 
         # Recheck voice client after await (might have disconnected)
         vc = ctx.voice_client
         if not vc or not vc.is_connected():
-            return await ctx.send(embed=hata_embed("Ses kanalına bağlanılamadı!"), delete_after=5)
+            return await ctx.send(embed=hata_embed(_t("Ses kanalına bağlanılamadı!")), delete_after=5)
 
         # Geçici dosya bot dizininde (systemd ProtectSystem=strict altında da yazılabilir)
         os.makedirs(GECICI_DIZIN, exist_ok=True)
         filename = os.path.join(GECICI_DIZIN, f"tts_{ctx.guild.id}_{uuid.uuid4().hex[:8]}.mp3")
         try:
+            if aktif_dil() == "en":
+                voice = self.en_sesler.get(voice, voice)
             communicate = edge_tts.Communicate(metin, voice, **self.voice_ayar.get(voice, {}))
             await communicate.save(filename)
 
@@ -96,7 +101,7 @@ class Konusma(commands.Cog):
 
         except Exception as e:
             logger.error(f"TTS Hatası: {e}")
-            await ctx.send(embed=hata_embed("Seslendirme sırasında bir hata oluştu."))
+            await ctx.send(embed=hata_embed(_t("Seslendirme sırasında bir hata oluştu.")))
             self.cleanup(filename)
 
     def cleanup(self, filename):
@@ -111,9 +116,9 @@ class Konusma(commands.Cog):
         """Botu ses kanalından çıkarır."""
         if ctx.voice_client:
             await ctx.voice_client.disconnect()
-            await ctx.send(embed=basari_embed("Ses kanalından ayrıldım. 👋"))
+            await ctx.send(embed=basari_embed(_t("Ses kanalından ayrıldım. 👋")))
         else:
-            await ctx.send(embed=hata_embed("Zaten bir ses kanalında değilim."))
+            await ctx.send(embed=hata_embed(_t("Zaten bir ses kanalında değilim.")))
 
 async def setup(bot):
     await bot.add_cog(Konusma(bot))

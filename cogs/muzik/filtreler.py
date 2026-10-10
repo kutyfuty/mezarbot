@@ -8,6 +8,7 @@ Hız/perde değiştiren filtrelerde (nightcore, vaporwave, hız) şarkı içinde
 Her zincir tests/muzik_test.py'de gerçek bir akışın 5 sn'si üzerinde ffmpeg ile doğrulanır (çıkış kodu 0).
 """
 from dataclasses import dataclass, field
+from dil import _t
 
 ORNEKLEME = 48000
 
@@ -91,7 +92,7 @@ class FiltreDurumu:
         if abs(self.hiz - 1.0) > 1e-3:
             parcalar.append(f"⏩ {self.hiz:g}x")
         if self.normalizasyon:
-            parcalar.append("📶 Normalizasyon")
+            parcalar.append(_t("📶 Normalizasyon"))
         return parcalar
 
 
@@ -109,7 +110,7 @@ def secenek_uygula(durum, anahtar, deger=None):
     Geçersiz anahtar → ValueError."""
     if anahtar == "kapat":
         durum.sifirla(normalizasyon_koru=True)
-        return "Tüm efektler kapatıldı."
+        return _t("Tüm efektler kapatıldı.")
     if anahtar.startswith("bas") and anahtar[3:].isdigit():
         seviye = int(anahtar[3:])
         if seviye not in BAS_SEVIYELERI:
@@ -118,23 +119,23 @@ def secenek_uygula(durum, anahtar, deger=None):
         return f"Bassboost: {BAS_SEVIYELERI[durum.bas][0]}"
     if anahtar in PERDE_EFEKTLERI:
         durum.perde = "" if durum.perde == anahtar else anahtar
-        return f"{PERDE_EFEKTLERI[anahtar][0]}: {'açık' if durum.perde else 'kapalı'}"
+        return f"{PERDE_EFEKTLERI[anahtar][0]}: {_t("açık") if durum.perde else _t("kapalı")}"
     if anahtar == "8d":
         durum.sekiz_d = not durum.sekiz_d
-        return f"8D: {'açık' if durum.sekiz_d else 'kapalı'}"
+        return f"8D: {_t("açık") if durum.sekiz_d else _t("kapalı")}"
     if anahtar == "karaoke":
         durum.karaoke = not durum.karaoke
-        return f"Karaoke: {'açık' if durum.karaoke else 'kapalı'}"
+        return f"Karaoke: {_t("açık") if durum.karaoke else _t("kapalı")}"
     if anahtar in ("hizlandir", "yavaslat", "hiz"):
         if deger is None:
             hedef = 1.25 if anahtar == "hizlandir" else 0.8 if anahtar == "yavaslat" else 1.0
             deger = 1.0 if abs(durum.hiz - hedef) < 1e-3 else hedef
         deger = round(min(HIZ_MAX, max(HIZ_MIN, float(deger))), 2)
         durum.hiz = deger
-        return f"Hız: {deger:g}x"
+        return _t("Hız: {deger:g}x", deger=deger)
     if anahtar == "normalizasyon":
         durum.normalizasyon = not durum.normalizasyon
-        return f"Normalizasyon: {'açık' if durum.normalizasyon else 'kapalı'}"
+        return _t("Normalizasyon: {durum}", durum=_t("açık") if durum.normalizasyon else _t("kapalı"))
     raise ValueError(anahtar)
 
 

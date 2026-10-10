@@ -17,6 +17,7 @@ import logging
 import subprocess
 import sys
 import time
+from dil import _t
 
 logger = logging.getLogger('MezarBot.Muzik.Guncelleyici')
 
@@ -59,9 +60,9 @@ def pip_guncelle():
         basarili = sonuc.returncode == 0
         cikti = (sonuc.stdout[-1500:] + ("\n" + sonuc.stderr[-1500:] if sonuc.stderr else "")).strip()
     except subprocess.TimeoutExpired:
-        basarili, cikti = False, f"pip {PIP_ZAMAN_ASIMI} sn içinde bitmedi"
+        basarili, cikti = False, _t("pip {PIP_ZAMAN_ASIMI} sn içinde bitmedi", PIP_ZAMAN_ASIMI=PIP_ZAMAN_ASIMI)
     except OSError as e:
-        basarili, cikti = False, f"pip çalıştırılamadı: {e}"
+        basarili, cikti = False, _t("pip çalıştırılamadı: {e}", e=e)
     yeni = kurulu_surum()
     return {'basarili': basarili, 'eski': eski, 'yeni': yeni, 'cikti': cikti,
             'degisti': basarili and yeni not in ("?", eski)}

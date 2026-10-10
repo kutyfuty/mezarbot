@@ -12,6 +12,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from groq_yardimci import HIZLI_MODELLER, groq_istemci, groq_tamamla
+from dil import _t
 
 logger = logging.getLogger('MezarBot.Ceviri')
 
@@ -98,7 +99,7 @@ class Ceviri(commands.Cog):
 
         # Çeviri embedi
         bayrak = "🇬🇧" if hedef_dil == "en" else "🇹🇷"
-        dil_baslik = "English Translation" if hedef_dil == "en" else "Türkçe Çeviri"
+        dil_baslik = _t("English Translation") if hedef_dil == "en" else _t("Türkçe Çeviri")
 
         embed = discord.Embed(
             description=f"> {cevrilmis}",
@@ -108,7 +109,7 @@ class Ceviri(commands.Cog):
             name=f"{bayrak} {dil_baslik} ({message.author.display_name})",
             icon_url=message.author.display_avatar.url
         )
-        embed.set_footer(text="MezarBot • Otomatik Çeviri Köprüsü (Groq Free Tier)")
+        embed.set_footer(text=_t("MezarBot • Otomatik Çeviri Köprüsü (Groq Free Tier)"))
 
         try:
             await message.reply(embed=embed, mention_author=False)
@@ -131,18 +132,18 @@ class Ceviri(commands.Cog):
 
         cevrilmis = await self.bot.loop.run_in_executor(None, self._metin_cevir, metin, hedef_dil)
         if not cevrilmis:
-            return await interaction.followup.send("⚠️ Çeviri gerçekleştirilemedi, lütfen tekrar deneyin.")
+            return await interaction.followup.send(_t("⚠️ Çeviri gerçekleştirilemedi, lütfen tekrar deneyin."))
 
         bayrak = "🇬🇧" if hedef_dil == "en" else "🇹🇷"
-        dil_etiket = "İngilizce" if hedef_dil == "en" else "Türkçe"
+        dil_etiket = _t("İngilizce") if hedef_dil == "en" else _t("Türkçe")
 
         embed = discord.Embed(
             color=discord.Color.from_rgb(46, 204, 113),
-            title=f"{bayrak} {dil_etiket} Çevirisi"
+            title=_t("{bayrak} {dil_etiket} Çevirisi", bayrak=bayrak, dil_etiket=dil_etiket)
         )
-        embed.add_field(name="Orijinal Metin", value=f"```text\n{metin[:1000]}\n```", inline=False)
-        embed.add_field(name="Çeviri", value=f"```text\n{cevrilmis[:1000]}\n```", inline=False)
-        embed.set_footer(text="MezarBot • Groq Çeviri Servisi")
+        embed.add_field(name=_t("Orijinal Metin"), value=_t("```text\n{metin}\n```", metin=metin[:1000]), inline=False)
+        embed.add_field(name=_t("Çeviri"), value=f"```text\n{cevrilmis[:1000]}\n```", inline=False)
+        embed.set_footer(text=_t("MezarBot • Groq Çeviri Servisi"))
 
         await interaction.followup.send(embed=embed)
 

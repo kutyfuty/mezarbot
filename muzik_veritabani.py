@@ -18,6 +18,7 @@ import time
 
 from database import db
 from yapilandirma import SAHIP_ID
+from dil import _t
 
 logger = logging.getLogger('MezarBot.MuzikDB')
 
@@ -154,7 +155,7 @@ class ListeHatasi(Exception):
 def _ad_temizle(ad):
     ad = " ".join(str(ad or "").split())[:LISTE_AD_UZUNLUK]
     if not ad:
-        raise ListeHatasi("Liste adı boş olamaz.")
+        raise ListeHatasi(_t("Liste adı boş olamaz."))
     return ad
 
 
@@ -249,7 +250,7 @@ def liste_olustur(kullanici_id, ad):
     c = db.cursor()
     c.execute("SELECT COUNT(*) FROM muzik_calma_listeleri WHERE kullanici_id = ?", (kullanici_id,))
     if c.fetchone()[0] >= LISTE_LIMITI:
-        raise ListeHatasi(f"En fazla {LISTE_LIMITI} kişisel listen olabilir.")
+        raise ListeHatasi(_t("En fazla {LISTE_LIMITI} kişisel listen olabilir.", LISTE_LIMITI=LISTE_LIMITI))
     c.execute("INSERT INTO muzik_calma_listeleri (kullanici_id, ad, olusturma) VALUES (?, ?, ?)",
               (kullanici_id, ad, time.time()))
     db.commit()
@@ -292,7 +293,7 @@ def listeden_parca_cikar(liste_id, sira_no):
     c = db.cursor()
     c.execute("DELETE FROM muzik_calma_listesi_parcalari WHERE id = ? AND liste_id = ?", (pid, liste_id))
     db.commit()
-    return baslik or "parça"
+    return baslik or _t("parça")
 
 
 def liste_parcalari_idli(liste_id):

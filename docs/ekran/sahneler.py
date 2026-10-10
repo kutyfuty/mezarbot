@@ -21,6 +21,7 @@ sys.path.insert(0, KOK)
 import discord  # noqa: E402
 
 import database  # noqa: E402
+from dil import _t, dil_zorla  # noqa: E402
 from cogs.muzik import panel as mp  # noqa: E402
 from cogs.muzik.filtreler import FiltreDurumu  # noqa: E402
 from cogs.muzik.kuyruk import DONGU_KUYRUK, Gecmis, Kuyruk, Parca  # noqa: E402
@@ -30,10 +31,15 @@ NS = types.SimpleNamespace
 
 # Örnek kişiler / kanallar (kurgu) — çizici <@id> ve <#id>'yi bu adlarla gösterir
 KISILER = {101: "Deniz", 102: "Mert", 103: "Elif", 104: "Can", 105: "Ayşe", 106: "Bora", 107: "Zeynep"}
-KANALLAR = {201: "📋・log", 202: "⚠️・uyarılar", 203: "👋・hoş-geldin", 204: "📤・görüşürüz", 205: "📢・duyurular",
-            900000000000000301: "🎧 Deniz'in odası", 302: "🎵 Müzik"}
 ODA_ID = 900000000000000301
-ROLLER = {401: "Üye"}
+KANALLAR = {
+    "tr": {201: "📋・log", 202: "⚠️・uyarılar", 203: "👋・hoş-geldin", 204: "📤・görüşürüz", 205: "📢・duyurular",
+           ODA_ID: "🎧 Deniz'in odası", 302: "🎵 Müzik"},
+    "en": {201: "📋・logs", 202: "⚠️・warnings", 203: "👋・welcome", 204: "📤・goodbye", 205: "📢・announcements",
+           ODA_ID: "🎧 Deniz's room", 302: "🎵 Music"},
+}
+ROLLER = {"tr": {401: "Üye"}, "en": {401: "Member"}}
+DIL = "tr"
 
 
 def bilesenler(view):
@@ -52,8 +58,8 @@ def bilesenler(view):
 
 
 def sahne(ad, embed, view=None, komut=None, genislik=560):
-    return {"ad": ad, "embed": embed.to_dict(), "bilesenler": bilesenler(view) if view else [],
-            "komut": komut, "genislik": genislik}
+    return {"ad": f"{ad}-{DIL}", "dil": DIL, "embed": embed.to_dict(), "bilesenler": bilesenler(view) if view else [],
+            "komut": komut, "genislik": genislik, "kanallar": KANALLAR[DIL], "roller": ROLLER[DIL]}
 
 
 def parca(baslik, sanatci, sure, kim, url):
@@ -73,7 +79,7 @@ def muzik_sahneleri():
         kuyruk.ekle(p)
     gecmis = Gecmis()
     gecmis.ekle(parca("Teoman - İstanbul'da Sonbahar", "Teoman", 270, 103, "https://youtu.be/ornek8"))
-    oyn = NS(simdiki=simdiki, vc=NS(voice_privacy_code="1234", channel=NS(name=KANALLAR[302])),
+    oyn = NS(simdiki=simdiki, vc=NS(voice_privacy_code="1234", channel=NS(name=KANALLAR[DIL][302])),
              duraklatildi_mi=lambda: False, konum=lambda: 104, ses=80, otomatik_duraklatildi=False,
              dongu=DONGU_KUYRUK, kuyruk=kuyruk, gecmis=gecmis, otomatik=True,
              dogrudan_aktarim_mi=lambda: True, filtre=FiltreDurumu(normalizasyon=False))
@@ -93,22 +99,15 @@ def ozel_oda_sahnesi():
 
 def dil_sahneleri():
     from cogs import yardim, yonetim
-    sahneler = []
     guild = NS(id=1, name="Mezar Kafe", icon=None, get_role=lambda rid: NS(mention=f"<@&{rid}>") if rid else None)
     ayar = {"log_kanal_id": 201, "uyari_kanal_id": 202, "hosgeldin_kanal_id": 203, "gorusuruz_kanal_id": 204,
             "otorol_id": 401, "yama_notlari_kanal_id": 205, "otomod_aktif": 1, "oygec_aktif": 0}
-    for dil in ("tr", "en"):
-        yardim.sunucu_dil_al = lambda _gid, d=dil: d
-        y = yardim.Yardim.__new__(yardim.Yardim)
-        sahneler.append(sahne(f"yardim-{dil}", y._yardim_embedi(guild), yardim.YardimView(dil=dil),
-                              komut="/yardim" if dil == "tr" else "/help"))
-        yonetim.sunucu_dil_al = lambda _gid, d=dil: d
-        yonetim.sunucu_ayar_al = lambda _gid, d=dil: dict(ayar, dil=d)
-        yonetim.kelime_oyunu_al = lambda _gid: {}
-        cog = yonetim.Yonetim.__new__(yonetim.Yonetim)
-        sahneler.append(sahne(f"ayarlar-{dil}", cog._ayarlar_embedi(guild), yonetim.AyarlarDilGorunumu(cog, 1),
-                              komut="/ayarlar" if dil == "tr" else "/settings"))
-    return sahneler
+    yonetim.sunucu_ayar_al = lambda _gid: dict(ayar, dil=DIL)
+    y = yardim.Yardim.__new__(yardim.Yardim)
+    cog = yonetim.Yonetim.__new__(yonetim.Yonetim)
+    return [sahne("yardim", y._yardim_embedi(guild), yardim.YardimView(dil=DIL), komut="/yardim" if DIL == "tr" else "/help"),
+            sahne("ayarlar", cog._ayarlar_embedi(guild), yonetim.AyarlarDilGorunumu(cog, 1),
+                  komut="/ayarlar" if DIL == "tr" else "/settings")]
 
 
 def sesstat_sahnesi():
@@ -116,6 +115,7 @@ def sesstat_sahnesi():
     cog = ses_aktivite.SesAktivite.__new__(ses_aktivite.SesAktivite)
     cog._init_db()
     c = database.db.cursor()
+    c.execute("DELETE FROM ses_aktivite")
     simdi = time.time()
     for uid, saat, oturum in ((101, 86.4, 212), (103, 71.2, 160), (102, 64.9, 188), (105, 40.3, 97),
                               (104, 33.7, 120), (107, 21.0, 64), (106, 9.5, 31)):
@@ -135,13 +135,17 @@ def sesstat_sahnesi():
         yakalanan["embed"] = embed
     etkilesim = NS(response=NS(defer=defer), followup=NS(send=send),
                    guild=NS(id=1, get_member=lambda uid: NS(display_name=KISILER[uid])))
-    asyncio.run(cog._leaderboard_gonder(etkilesim, None, "🏆 Ses Kanalı Şampiyonları (Tüm Zamanlar)"))
+    asyncio.run(cog._leaderboard_gonder(etkilesim, None, _t("🏆 Ses Kanalı Şampiyonları (Tüm Zamanlar)")))
     return sahne("sesstat", yakalanan["embed"], komut="/sesstat top")
 
 
 def main():
-    sahneler = muzik_sahneleri() + [ozel_oda_sahnesi()] + dil_sahneleri() + [sesstat_sahnesi()]
-    cikti = {"kisiler": KISILER, "kanallar": KANALLAR, "roller": ROLLER, "sahneler": sahneler}
+    global DIL
+    sahneler = []
+    for DIL in ("tr", "en"):
+        dil_zorla(DIL)   # botun kendi çeviri sistemi: aynı kod, sunucu dili İngilizce olunca İngilizce çıktı
+        sahneler += muzik_sahneleri() + [ozel_oda_sahnesi()] + dil_sahneleri() + [sesstat_sahnesi()]
+    cikti = {"kisiler": KISILER, "sahneler": sahneler}
     yol = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sahneler.json")
     with open(yol, "w", encoding="utf-8") as f:
         json.dump(cikti, f, ensure_ascii=False, indent=1)

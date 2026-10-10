@@ -23,6 +23,7 @@ jobs:
           cp config.example.json config.json
           python tests/smoke_test.py
           python tests/ozel_oda_test.py
+          python tests/dil_test.py
           python tests/muzik_test.py --agsiz
 
   docker:

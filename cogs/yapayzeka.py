@@ -11,6 +11,7 @@ import logging
 from collections import defaultdict
 from database import db, bouncer_kontrol, vip_kontrol
 from groq_yardimci import groq_istemci, groq_tamamla
+from dil import _t
 
 logger = logging.getLogger('MezarBot.YapayZeka')
 
@@ -45,28 +46,16 @@ class YapayZeka(commands.Cog):
         self._kisilik = {}  # {kullanici_id: "normal" | "komik" | "akademik" | "agresif"}
         self._kisilik_promptlari = {
             "normal": (
-                "Senin adın MezarBot. Discord'da takılan sıradan birisin. "
-                "Sadece gerektiği kadar konuş. Genelde küçük harfle yaz. "
-                "Kısa ve öz cevaplar ver. Emoji kullanabilirsin ama abartma. "
-                "Eğer birisi sana kötü bir şey söylerse espriyle karşılık ver."
+                _t("Senin adın MezarBot. Discord'da takılan sıradan birisin. Sadece gerektiği kadar konuş. Genelde küçük harfle yaz. Kısa ve öz cevaplar ver. Emoji kullanabilirsin ama abartma. Eğer birisi sana kötü bir şey söylerse espriyle karşılık ver.")
             ),
             "komik": (
-                "Senin adın MezarBot. Sen çok komik ve eğlenceli bir botsun. "
-                "Her şeye espriyle yaklaş, şakalar yap, komik benzetmeler kullan. "
-                "Argo ve günlük dil kullan. Emojileri bol kullan. "
-                "Ciddi sorulara bile hafif bir espriyle cevap ver."
+                _t("Senin adın MezarBot. Sen çok komik ve eğlenceli bir botsun. Her şeye espriyle yaklaş, şakalar yap, komik benzetmeler kullan. Argo ve günlük dil kullan. Emojileri bol kullan. Ciddi sorulara bile hafif bir espriyle cevap ver.")
             ),
             "akademik": (
-                "Senin adın MezarBot. Sen bilgili ve akademik bir asistansın. "
-                "Sorulara detaylı, bilimsel ve düzgün Türkçe ile cevap ver. "
-                "Gerektiğinde kaynak belirt. Formal bir dil kullan. "
-                "Açıklayıcı ve öğretici ol."
+                _t("Senin adın MezarBot. Sen bilgili ve akademik bir asistansın. Sorulara detaylı, bilimsel ve düzgün Türkçe ile cevap ver. Gerektiğinde kaynak belirt. Formal bir dil kullan. Açıklayıcı ve öğretici ol.")
             ),
             "agresif": (
-                "Senin adın MezarBot. Sen sert, laf sokucu ama eğlenceli bir botsun. "
-                "İğneleyici ve alaycı cevaplar ver ama kırıcı olma. "
-                "Rakip takıma laf sokar gibi konuş. Kendine güvenli ol. "
-                "Küçük harfle ve günlük dil ile yaz."
+                _t("Senin adın MezarBot. Sen sert, laf sokucu ama eğlenceli bir botsun. İğneleyici ve alaycı cevaplar ver ama kırıcı olma. Rakip takıma laf sokar gibi konuş. Kendine güvenli ol. Küçük harfle ve günlük dil ile yaz.")
             ),
         }
         self.mezar_prompt = self._kisilik_promptlari["normal"]
@@ -120,7 +109,7 @@ class YapayZeka(commands.Cog):
         """anahtar: (sunucu_id, kullanici_id) — konuşma geçmişi sunucu bazlı tutulur.
         Kişilik tercihi kullanıcı bazlıdır (kullanici_id)."""
         if not self.ai_aktif or not self.client:
-            return "Beynim yok şu an."
+            return _t("Beynim yok şu an.")
 
         # Geçmişin kopyasını al (thread safety — list shared between event loop and thread)
         gecmis_kopya = list(self.konusma_gecmisi[anahtar])
@@ -134,10 +123,10 @@ class YapayZeka(commands.Cog):
                 mesajlar.append({"role": "user", "content": mesaj})
 
                 cevap = groq_tamamla(self.client, mesajlar, temperature=0.6, max_tokens=900)
-                return cevap[:DISCORD_MESAJ_SINIRI] if cevap else "bi hata oldu ya, kusura bakma"
+                return cevap[:DISCORD_MESAJ_SINIRI] if cevap else _t("bi hata oldu ya, kusura bakma")
             except Exception as e:
                 logger.error(f"AI cevap hatası: {e}")
-                return "bi hata oldu ya, kusura bakma"
+                return _t("bi hata oldu ya, kusura bakma")
 
         cevap = await asyncio.to_thread(istek_gonder)
 
@@ -158,9 +147,9 @@ class YapayZeka(commands.Cog):
     async def ciz(self, ctx, *, prompt: str):
         """AI ile resim çizer. Kullanım: !ciz bir kedi uzayda / !draw a cat in space"""
         if len(prompt) > 500:
-            return await ctx.send("❌ Prompt çok uzun! (Maks 500 karakter)", delete_after=5)
+            return await ctx.send(_t("❌ Prompt çok uzun! (Maks 500 karakter)"), delete_after=5)
         if not (os.getenv("REPLICATE_API_TOKEN") or "").strip():
-            return await ctx.send("❌ Çizim özelliği şu an devre dışı.", delete_after=7)
+            return await ctx.send(_t("❌ Çizim özelliği şu an devre dışı."), delete_after=7)
         vip_mi = vip_kontrol(ctx.author)
         su_an = time.time()
         kullanici_id = ctx.author.id
@@ -168,12 +157,12 @@ class YapayZeka(commands.Cog):
         if not vip_mi:
             if su_an - self.ciz_global_sure < 45:
                 return await ctx.send(
-                    f"⏳ **Global Soğuma:** Bot resim çiziyor. Lütfen **{int(45 - (su_an - self.ciz_global_sure))} sn** bekle.",
+                    _t("⏳ **Global Soğuma:** Bot resim çiziyor. Lütfen **{int} sn** bekle.", int=int(45 - (su_an - self.ciz_global_sure))),
                     delete_after=7)
             son_kullanim = self.ciz_kisisel_sure.get(kullanici_id, 0)
             if su_an - son_kullanim < 60:
                 return await ctx.send(
-                    f"⏳ **Kişisel Soğuma:** Yeni istek için **{int(60 - (su_an - son_kullanim))} sn** bekle.",
+                    _t("⏳ **Kişisel Soğuma:** Yeni istek için **{int} sn** bekle.", int=int(60 - (su_an - son_kullanim))),
                     delete_after=7)
 
         bugun = datetime.date.today().isoformat()
@@ -190,7 +179,7 @@ class YapayZeka(commands.Cog):
                 kalan_hak = kayitli_hak
 
         if not vip_mi and kalan_hak <= 0:
-            return await ctx.send(f"❌ **{ctx.author.name}**, bugünkü bedava çizim hakkını tükettin.", delete_after=7)
+            return await ctx.send(_t("❌ **{name}**, bugünkü bedava çizim hakkını tükettin.", name=ctx.author.name), delete_after=7)
 
         yeni_hak = kalan_hak
         if not vip_mi:
@@ -201,9 +190,9 @@ class YapayZeka(commands.Cog):
                        (kullanici_id, yeni_hak, bugun))
             db.commit()
 
-        hak_metni = "SINIRSIZ (VIP)" if vip_mi else f"{yeni_hak}/5"
+        hak_metni = _t("SINIRSIZ (VIP)") if vip_mi else f"{yeni_hak}/5"
         bekleme = await ctx.send(
-            f"🚀 **{ctx.author.name}**, motor ateşlendi (Kalan Hak: **{hak_metni}**). *Çevriliyor...*")
+            _t("🚀 **{name}**, motor ateşlendi (Kalan Hak: **{hak_metni}**). *Çevriliyor...*", name=ctx.author.name, hak_metni=hak_metni))
         ingilizce_prompt = await self.prompt_cevir(prompt)
 
         async def resim_istegi():
@@ -247,18 +236,18 @@ class YapayZeka(commands.Cog):
                                 raise ValueError("Replicate boş çıktı döndü")
                             elif status in ("failed", "canceled"):
                                 raise ValueError(poll_data.get("error") or "Çizim işlemi iptal/başarısız oldu")
-                raise TimeoutError("Çizim işlemi zaman aşımına uğradı (45 sn)")
+                raise TimeoutError(_t("Çizim işlemi zaman aşımına uğradı (45 sn)"))
 
         try:
             resim_linki = await resim_istegi()
             embed = discord.Embed(color=0xEB459E, timestamp=datetime.datetime.now(datetime.timezone.utc))
-            embed.set_author(name="🖼️ MezarBot Çizim", icon_url=ctx.author.display_avatar.url)
+            embed.set_author(name=_t("🖼️ MezarBot Çizim"), icon_url=ctx.author.display_avatar.url)
             embed.description = (
                 f"> 🇹🇷 {prompt}\n"
                 f"> 🇬🇧 *{ingilizce_prompt}*"
             )
             embed.set_image(url=resim_linki)
-            embed.set_footer(text=f"MezarBot • Flux Schnell │ Kalan Hak: {hak_metni}")
+            embed.set_footer(text=_t("MezarBot • Flux Schnell │ Kalan Hak: {hak_metni}", hak_metni=hak_metni))
             await bekleme.delete()
             await ctx.send(embed=embed)
         except Exception as e:
@@ -270,7 +259,7 @@ class YapayZeka(commands.Cog):
                            (kullanici_id,))
                 db.commit()
             try:
-                await bekleme.edit(content="❌ Çizim Hatası: API sorunu. Hakkın iade edildi.")
+                await bekleme.edit(content=_t("❌ Çizim Hatası: API sorunu. Hakkın iade edildi."))
             except Exception:
                 pass
 
@@ -286,7 +275,7 @@ class YapayZeka(commands.Cog):
         anahtar = (ctx.guild.id if ctx.guild else 0, ctx.author.id)
         self.konusma_gecmisi.pop(anahtar, None)
         self._gecmis_son_aktif.pop(anahtar, None)
-        await ctx.send("🧹 Sohbet geçmişin sıfırlandı!", delete_after=5)
+        await ctx.send(_t("🧹 Sohbet geçmişin sıfırlandı!"), delete_after=5)
 
     @commands.hybrid_command(description="Yapay zekânın kişiliğini seç")
     async def kisilik(self, ctx, mod: str = None):
@@ -296,16 +285,14 @@ class YapayZeka(commands.Cog):
             mevcut = self._kisilik.get(ctx.author.id, "normal")
             mod_listesi = " / ".join(f"**{m}**" if m != mevcut else f"~~{m}~~" for m in modlar)
             return await ctx.send(
-                f"🎭 Mevcut kişilik: **{mevcut}**\n"
-                f"Kullanım: `!kisilik <mod>`\n"
-                f"Modlar: {mod_listesi}",
+                _t("🎭 Mevcut kişilik: **{mevcut}**\nKullanım: `!kisilik <mod>`\nModlar: {mod_listesi}", mevcut=mevcut, mod_listesi=mod_listesi),
                 delete_after=10)
         mod = mod.lower()
         self._kisilik[ctx.author.id] = mod
         # Geçmişi sıfırla (yeni kişilikle temiz başla)
         self.konusma_gecmisi.pop((ctx.guild.id if ctx.guild else 0, ctx.author.id), None)
         emoji_map = {"normal": "😐", "komik": "😂", "akademik": "🎓", "agresif": "😈"}
-        await ctx.send(f"{emoji_map.get(mod, '🎭')} AI kişilik modu **{mod}** olarak ayarlandı!", delete_after=7)
+        await ctx.send(_t("{get} AI kişilik modu **{mod}** olarak ayarlandı!", get=emoji_map.get(mod, '🎭'), mod=mod), delete_after=7)
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -318,7 +305,7 @@ class YapayZeka(commands.Cog):
                 su_an = time.time()
                 son = self._ai_cooldown.get(message.author.id, 0)
                 if su_an - son < 5:
-                    return await message.reply("⏳ Biraz yavaş, 5 saniye bekle.", delete_after=3)
+                    return await message.reply(_t("⏳ Biraz yavaş, 5 saniye bekle."), delete_after=3)
                 self._ai_cooldown[message.author.id] = su_an
 
                 async with message.channel.typing():

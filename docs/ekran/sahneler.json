@@ -8,21 +8,10 @@
   "106": "Bora",
   "107": "Zeynep"
  },
- "kanallar": {
-  "201": "📋・log",
-  "202": "⚠️・uyarılar",
-  "203": "👋・hoş-geldin",
-  "204": "📤・görüşürüz",
-  "205": "📢・duyurular",
-  "900000000000000301": "🎧 Deniz'in odası",
-  "302": "🎵 Müzik"
- },
- "roller": {
-  "401": "Üye"
- },
  "sahneler": [
   {
-   "ad": "muzik-paneli",
+   "ad": "muzik-paneli-tr",
+   "dil": "tr",
    "embed": {
     "footer": {
      "text": "MezarBot Premium Müzik  •  🔒 E2EE (DAVE)  •  🔈 🎵 Müzik"
@@ -163,10 +152,23 @@
     ]
    ],
    "komut": "/oynat gülpembe",
-   "genislik": 560
+   "genislik": 560,
+   "kanallar": {
+    "201": "📋・log",
+    "202": "⚠️・uyarılar",
+    "203": "👋・hoş-geldin",
+    "204": "📤・görüşürüz",
+    "205": "📢・duyurular",
+    "900000000000000301": "🎧 Deniz'in odası",
+    "302": "🎵 Müzik"
+   },
+   "roller": {
+    "401": "Üye"
+   }
   },
   {
-   "ad": "kuyruk",
+   "ad": "kuyruk-tr",
+   "dil": "tr",
    "embed": {
     "footer": {
      "text": "Sayfa 1/1  •  6 parça  •  25:04  •  Döngü: Kuyruk"
@@ -179,10 +181,23 @@
    },
    "bilesenler": [],
    "komut": "/kuyruk",
-   "genislik": 560
+   "genislik": 560,
+   "kanallar": {
+    "201": "📋・log",
+    "202": "⚠️・uyarılar",
+    "203": "👋・hoş-geldin",
+    "204": "📤・görüşürüz",
+    "205": "📢・duyurular",
+    "900000000000000301": "🎧 Deniz'in odası",
+    "302": "🎵 Müzik"
+   },
+   "roller": {
+    "401": "Üye"
+   }
   },
   {
-   "ad": "ozel-oda",
+   "ad": "ozel-oda-tr",
+   "dil": "tr",
    "embed": {
     "footer": {
      "text": "Oda 30 sn boş kalınca otomatik silinir • MezarBot"
@@ -278,10 +293,23 @@
     ]
    ],
    "komut": null,
-   "genislik": 560
+   "genislik": 560,
+   "kanallar": {
+    "201": "📋・log",
+    "202": "⚠️・uyarılar",
+    "203": "👋・hoş-geldin",
+    "204": "📤・görüşürüz",
+    "205": "📢・duyurular",
+    "900000000000000301": "🎧 Deniz'in odası",
+    "302": "🎵 Müzik"
+   },
+   "roller": {
+    "401": "Üye"
+   }
   },
   {
    "ad": "yardim-tr",
+   "dil": "tr",
    "embed": {
     "footer": {
      "text": "MezarBot • Tüm komutlar / ve ! ile çalışır • Kategori seç 👇"
@@ -291,7 +319,7 @@
     },
     "flags": 0,
     "color": 5793266,
-    "timestamp": "2026-10-10T21:38:27.787007+00:00",
+    "timestamp": "2026-10-10T22:49:26.824548+00:00",
     "type": "rich",
     "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nAşağıdaki menüden bir kategori seçerek\nkomutları görebilirsin.\n\n💡 **Tüm komutlar hem `/` (slash) hem de `!` (prefix) ile kullanılabilir!**\n*(Örneğin: `/yardim` veya `!yardim`, `/oynat` veya `!oynat`)*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n> 🎵 **Müzik** ── Şarkı çalma, sıra, çalma listeleri\n> 🛡️ **Yönetim** ── Moderasyon, ceza ve sunucu ayarları\n> 🤖 **Yapay Zeka** ── AI sohbet ve Flux Schnell çizim\n> 🔊 **Özel Odalar** ── Kendi ses odanı aç ve yönet\n> 🌐 **Çeviri** ── Bayrak tepkisi ve anlık çeviri köprüsü\n> 📊 **Ses & İstatistik** ── Ses kanalı liderlik tablosu\n> 🗣️ **Sesli Okuma** ── Metinleri ses kanalında okutma"
    },
@@ -304,10 +332,23 @@
     ]
    ],
    "komut": "/yardim",
-   "genislik": 560
+   "genislik": 560,
+   "kanallar": {
+    "201": "📋・log",
+    "202": "⚠️・uyarılar",
+    "203": "👋・hoş-geldin",
+    "204": "📤・görüşürüz",
+    "205": "📢・duyurular",
+    "900000000000000301": "🎧 Deniz'in odası",
+    "302": "🎵 Müzik"
+   },
+   "roller": {
+    "401": "Üye"
+   }
   },
   {
    "ad": "ayarlar-tr",
+   "dil": "tr",
    "embed": {
     "footer": {
      "text": "Ayarlanmamış özellikler bu sunucuda devre dışıdır • MezarBot"
@@ -317,7 +358,7 @@
     },
     "flags": 0,
     "color": 5793266,
-    "timestamp": "2026-10-10T21:38:27.791423+00:00",
+    "timestamp": "2026-10-10T22:49:26.824786+00:00",
     "type": "rich",
     "description": "**🌐 Sunucu Dili:** **🇹🇷 Türkçe**\n> `/dil tr · en  (ya da aşağıdaki butonlar)`\n**📋 Log kanalı:** <#201>\n> `!logayarla #kanal`\n**⚠️ Uyarı kanalı:** <#202>\n> `!uyarayarla #kanal`\n**👋 Hoşgeldin kanalı:** <#203>\n> `!hosgeldinayarla #kanal [mesaj]`\n**📤 Görüşürüz kanalı:** <#204>\n> `!gorusuruzayarla #kanal`\n**🏷️ Otorol:** <@&401>\n> `!otorolayarla @rol`\n**📢 Yama notları:** <#205>\n> `!yamanotukanal #kanal · kapat`\n**🤖 Oto-mod:** ✅ Açık\n> `!otomod`\n**🗳️ Oy ile geç:** ❌ Kapalı\n> `!oygec ac · kapat`"
    },
@@ -340,36 +381,386 @@
     ]
    ],
    "komut": "/ayarlar",
-   "genislik": 560
+   "genislik": 560,
+   "kanallar": {
+    "201": "📋・log",
+    "202": "⚠️・uyarılar",
+    "203": "👋・hoş-geldin",
+    "204": "📤・görüşürüz",
+    "205": "📢・duyurular",
+    "900000000000000301": "🎧 Deniz'in odası",
+    "302": "🎵 Müzik"
+   },
+   "roller": {
+    "401": "Üye"
+   }
+  },
+  {
+   "ad": "sesstat-tr",
+   "dil": "tr",
+   "embed": {
+    "flags": 0,
+    "color": 1947988,
+    "type": "rich",
+    "description": "🥇 **Deniz** — 86 sa 24 dk (212 oturum)\n🥈 **Elif** — 71 sa 12 dk (160 oturum)\n🥉 **Mert** — 64 sa 54 dk (188 oturum)\n▫️ **Ayşe** — 40 sa 18 dk (97 oturum)\n▫️ **Can** — 33 sa 42 dk (120 oturum)\n▫️ **Zeynep** — 21 sa 0 dk (64 oturum)\n▫️ **Bora** — 9 sa 30 dk (31 oturum)",
+    "title": "🏆 Ses Kanalı Şampiyonları (Tüm Zamanlar)"
+   },
+   "bilesenler": [],
+   "komut": "/sesstat top",
+   "genislik": 560,
+   "kanallar": {
+    "201": "📋・log",
+    "202": "⚠️・uyarılar",
+    "203": "👋・hoş-geldin",
+    "204": "📤・görüşürüz",
+    "205": "📢・duyurular",
+    "900000000000000301": "🎧 Deniz'in odası",
+    "302": "🎵 Müzik"
+   },
+   "roller": {
+    "401": "Üye"
+   }
+  },
+  {
+   "ad": "muzik-paneli-en",
+   "dil": "en",
+   "embed": {
+    "footer": {
+     "text": "MezarBot Premium Music  •  🔒 E2EE (DAVE)  •  🔈 🎵 Music"
+    },
+    "thumbnail": {
+     "url": "kapak"
+    },
+    "author": {
+     "name": "🎶 Now Playing  ·  🔴 YouTube"
+    },
+    "fields": [
+     {
+      "inline": true,
+      "name": "👤 Requested by",
+      "value": "<@101>"
+     },
+     {
+      "inline": true,
+      "name": "🔁 Loop",
+      "value": "Queue"
+     },
+     {
+      "inline": true,
+      "name": "📋 Queue",
+      "value": "6 tracks · 25:04"
+     },
+     {
+      "inline": true,
+      "name": "📻 Autoplay",
+      "value": "On"
+     },
+     {
+      "inline": true,
+      "name": "🎚️ Audio Path",
+      "value": "Opus pass-through (lossless)"
+     },
+     {
+      "inline": true,
+      "name": "📶 Normalization",
+      "value": "Off"
+     },
+     {
+      "inline": false,
+      "name": "⏭️ Up Next",
+      "value": "[Sezen Aksu - Firuze](https://youtu.be/ornek2) `4:23` · <@102>\n-# … and 5 more tracks"
+     }
+    ],
+    "flags": 0,
+    "color": 16711680,
+    "type": "rich",
+    "description": "▬▬▬▬▬▬🔘───────────\n`1:44 / 4:47`  ·  🔊 **80%**",
+    "url": "https://youtu.be/ornek1",
+    "title": "Barış Manço - Gülpembe"
+   },
+   "bilesenler": [
+    [
+     {
+      "tur": "buton",
+      "etiket": "",
+      "emoji": "⏮️",
+      "stil": "secondary",
+      "kapali": false
+     },
+     {
+      "tur": "buton",
+      "etiket": "",
+      "emoji": "⏸️",
+      "stil": "primary",
+      "kapali": false
+     },
+     {
+      "tur": "buton",
+      "etiket": "",
+      "emoji": "⏭️",
+      "stil": "secondary",
+      "kapali": false
+     },
+     {
+      "tur": "buton",
+      "etiket": "",
+      "emoji": "⏹️",
+      "stil": "danger",
+      "kapali": false
+     },
+     {
+      "tur": "buton",
+      "etiket": "",
+      "emoji": "🔁",
+      "stil": "primary",
+      "kapali": false
+     }
+    ],
+    [
+     {
+      "tur": "buton",
+      "etiket": "",
+      "emoji": "🔀",
+      "stil": "secondary",
+      "kapali": false
+     },
+     {
+      "tur": "buton",
+      "etiket": "",
+      "emoji": "🔉",
+      "stil": "secondary",
+      "kapali": false
+     },
+     {
+      "tur": "buton",
+      "etiket": "",
+      "emoji": "🔊",
+      "stil": "secondary",
+      "kapali": false
+     },
+     {
+      "tur": "buton",
+      "etiket": "",
+      "emoji": "📜",
+      "stil": "secondary",
+      "kapali": false
+     }
+    ],
+    [
+     {
+      "tur": "buton",
+      "etiket": "Autoplay: On",
+      "emoji": "📻",
+      "stil": "success",
+      "kapali": false
+     },
+     {
+      "tur": "buton",
+      "etiket": "Add to my favorites",
+      "emoji": "❤️",
+      "stil": "secondary",
+      "kapali": false
+     }
+    ]
+   ],
+   "komut": "/oynat gülpembe",
+   "genislik": 560,
+   "kanallar": {
+    "201": "📋・logs",
+    "202": "⚠️・warnings",
+    "203": "👋・welcome",
+    "204": "📤・goodbye",
+    "205": "📢・announcements",
+    "900000000000000301": "🎧 Deniz's room",
+    "302": "🎵 Music"
+   },
+   "roller": {
+    "401": "Member"
+   }
+  },
+  {
+   "ad": "kuyruk-en",
+   "dil": "en",
+   "embed": {
+    "footer": {
+     "text": "Page 1/1  •  6 tracks  •  25:04  •  Loop: Queue"
+    },
+    "flags": 0,
+    "color": 1947988,
+    "type": "rich",
+    "description": "**▶ Now:** [Barış Manço - Gülpembe](https://youtu.be/ornek1) `4:47` · <@101>\n\n`  1.` [Sezen Aksu - Firuze](https://youtu.be/ornek2) `4:23` · <@102>\n`  2.` [Duman - Bu Akşam](https://youtu.be/ornek3) `3:42` · <@103>\n`  3.` [Tarkan - Şımarık](https://youtu.be/ornek4) `3:54` · <@101>\n`  4.` [MFÖ - Ele Güne Karşı](https://youtu.be/ornek5) `4:16` · <@104>\n`  5.` [Athena - Holigan](https://youtu.be/ornek6) `3:31` · <@105>\n`  6.` [Cem Karaca - Resimdeki Gözyaşları](https://youtu.be/ornek7) `5:18` · <@102>",
+    "title": "📜 Queue"
+   },
+   "bilesenler": [],
+   "komut": "/kuyruk",
+   "genislik": 560,
+   "kanallar": {
+    "201": "📋・logs",
+    "202": "⚠️・warnings",
+    "203": "👋・welcome",
+    "204": "📤・goodbye",
+    "205": "📢・announcements",
+    "900000000000000301": "🎧 Deniz's room",
+    "302": "🎵 Music"
+   },
+   "roller": {
+    "401": "Member"
+   }
+  },
+  {
+   "ad": "ozel-oda-en",
+   "dil": "en",
+   "embed": {
+    "footer": {
+     "text": "Deleted automatically after 30 s empty • MezarBot"
+    },
+    "fields": [
+     {
+      "inline": true,
+      "name": "🔐 Access",
+      "value": "🔒 Locked"
+     },
+     {
+      "inline": true,
+      "name": "👁️ Visibility",
+      "value": "👁️ Visible"
+     },
+     {
+      "inline": true,
+      "name": "👥 Limit",
+      "value": "5 people"
+     },
+     {
+      "inline": false,
+      "name": "ℹ️ How?",
+      "value": "➕ **Invite** — let them into your locked/hidden room · 🚫 **Kick** — drop them from voice, they can't rejoin\n👑 **Transfer** — give ownership · 🙋 **Claim** — take over if the owner isn't in the room\nCommands: `/oda bilgi`, `/oda yasakla`, `/oda yasak-kaldir` …"
+     }
+    ],
+    "flags": 0,
+    "color": 15418782,
+    "type": "rich",
+    "description": "<#900000000000000301> · owner <@101>\nOnly the room owner and server admins can use the buttons; replies are only visible to you.",
+    "title": "🎛️ Room Control Panel"
+   },
+   "bilesenler": [
+    [
+     {
+      "tur": "buton",
+      "etiket": "Unlock",
+      "emoji": "🔓",
+      "stil": "success",
+      "kapali": false
+     },
+     {
+      "tur": "buton",
+      "etiket": "Hide",
+      "emoji": "👁️",
+      "stil": "secondary",
+      "kapali": false
+     },
+     {
+      "tur": "buton",
+      "etiket": "Limit",
+      "emoji": "👥",
+      "stil": "secondary",
+      "kapali": false
+     },
+     {
+      "tur": "buton",
+      "etiket": "Rename",
+      "emoji": "✏️",
+      "stil": "secondary",
+      "kapali": false
+     }
+    ],
+    [
+     {
+      "tur": "buton",
+      "etiket": "Invite",
+      "emoji": "➕",
+      "stil": "primary",
+      "kapali": false
+     },
+     {
+      "tur": "buton",
+      "etiket": "Kick",
+      "emoji": "🚫",
+      "stil": "danger",
+      "kapali": false
+     },
+     {
+      "tur": "buton",
+      "etiket": "Transfer",
+      "emoji": "👑",
+      "stil": "secondary",
+      "kapali": false
+     },
+     {
+      "tur": "buton",
+      "etiket": "Claim",
+      "emoji": "🙋",
+      "stil": "secondary",
+      "kapali": false
+     }
+    ]
+   ],
+   "komut": null,
+   "genislik": 560,
+   "kanallar": {
+    "201": "📋・logs",
+    "202": "⚠️・warnings",
+    "203": "👋・welcome",
+    "204": "📤・goodbye",
+    "205": "📢・announcements",
+    "900000000000000301": "🎧 Deniz's room",
+    "302": "🎵 Music"
+   },
+   "roller": {
+    "401": "Member"
+   }
   },
   {
    "ad": "yardim-en",
+   "dil": "en",
    "embed": {
     "footer": {
-     "text": "MezarBot • Select a category below 👇 • /help"
+     "text": "MezarBot • Commands work with / and ! • Pick a category 👇"
     },
     "author": {
      "name": "📖 MezarBot Help Menu"
     },
     "flags": 0,
     "color": 5793266,
-    "timestamp": "2026-10-10T21:38:27.791861+00:00",
+    "timestamp": "2026-10-10T22:49:26.840981+00:00",
     "type": "rich",
-    "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nSelect a category from the dropdown menu below\nto explore all available commands.\n\n💡 **All commands can be used with both `/` (slash) and `!` (prefix)!**\n*(For example: `/help` or `!help`, `/draw` or `!draw`, `/oynat` or `!play`)*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n> 🎵 **Music** ── Play songs, queues, playlists\n> 🛡️ **Moderation & Settings** ── Moderation tools, server settings\n> 🤖 **AI & Drawing** ── AI chat and Flux Schnell drawing\n> 🔊 **Custom Rooms** ── Temporary private voice channels\n> 🌐 **Translation** ── Flag reaction bridge & translation\n> 📊 **Voice Stats** ── Voice channel duration leaderboards\n> 🗣️ **Text to Speech** ── Read messages in voice channels"
+    "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nPick a category from the menu below\nto see its commands.\n\n💡 **Most commands work with both `/` (slash) and `!` (prefix)!**\n*(For example: `/help` or `!help`, `/oynat` or `!play`)*\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n> 🎵 **Music** ── Play songs, queue, playlists\n> 🛡️ **Moderation** ── Moderation, punishments and server settings\n> 🤖 **AI** ── AI chat and Flux Schnell drawing\n> 🔊 **Private Rooms** ── Open and manage your own voice room\n> 🌐 **Translation** ── Flag reactions and instant translation\n> 📊 **Voice Stats** ── Voice channel leaderboards\n> 🗣️ **Text to Speech** ── Read messages aloud in voice"
    },
    "bilesenler": [
     [
      {
       "tur": "menu",
-      "yer_tutucu": "📂 Select a category..."
+      "yer_tutucu": "📂 Pick a category..."
      }
     ]
    ],
    "komut": "/help",
-   "genislik": 560
+   "genislik": 560,
+   "kanallar": {
+    "201": "📋・logs",
+    "202": "⚠️・warnings",
+    "203": "👋・welcome",
+    "204": "📤・goodbye",
+    "205": "📢・announcements",
+    "900000000000000301": "🎧 Deniz's room",
+    "302": "🎵 Music"
+   },
+   "roller": {
+    "401": "Member"
+   }
   },
   {
    "ad": "ayarlar-en",
+   "dil": "en",
    "embed": {
     "footer": {
      "text": "Unconfigured features are disabled on this server • MezarBot"
@@ -379,9 +770,9 @@
     },
     "flags": 0,
     "color": 5793266,
-    "timestamp": "2026-10-10T21:38:27.796193+00:00",
+    "timestamp": "2026-10-10T22:49:26.841131+00:00",
     "type": "rich",
-    "description": "**🌐 Server Language:** **🇬🇧 English**\n> `/dil tr · en  (or the buttons below)`\n**📋 Log Channel:** <#201>\n> `!logayarla #channel`\n**⚠️ Warning Channel:** <#202>\n> `!uyarayarla #channel`\n**👋 Welcome Channel:** <#203>\n> `!hosgeldinayarla #channel [msg]`\n**📤 Goodbye Channel:** <#204>\n> `!gorusuruzayarla #channel`\n**🏷️ Auto-role:** <@&401>\n> `!otorolayarla @role`\n**📢 Patch Notes:** <#205>\n> `!yamanotukanal #channel · off`\n**🤖 Auto-mod:** ✅ Enabled\n> `!otomod`\n**🗳️ Vote Skip:** ❌ Disabled\n> `!oygec on · off`"
+    "description": "**🌐 Server Language:** **🇬🇧 English**\n> `/dil tr · en  (or the buttons below)`\n**📋 Log channel:** <#201>\n> `!logayarla #channel`\n**⚠️ Warning channel:** <#202>\n> `!uyarayarla #channel`\n**👋 Welcome channel:** <#203>\n> `!hosgeldinayarla #channel [message]`\n**📤 Goodbye channel:** <#204>\n> `!gorusuruzayarla #channel`\n**🏷️ Auto-role:** <@&401>\n> `!otorolayarla @role`\n**📢 Patch notes:** <#205>\n> `!yamanotukanal #channel · off`\n**🤖 Auto-mod:** ✅ On\n> `!otomod`\n**🗳️ Vote skip:** ❌ Off\n> `!oygec on · off`"
    },
    "bilesenler": [
     [
@@ -402,20 +793,45 @@
     ]
    ],
    "komut": "/settings",
-   "genislik": 560
+   "genislik": 560,
+   "kanallar": {
+    "201": "📋・logs",
+    "202": "⚠️・warnings",
+    "203": "👋・welcome",
+    "204": "📤・goodbye",
+    "205": "📢・announcements",
+    "900000000000000301": "🎧 Deniz's room",
+    "302": "🎵 Music"
+   },
+   "roller": {
+    "401": "Member"
+   }
   },
   {
-   "ad": "sesstat",
+   "ad": "sesstat-en",
+   "dil": "en",
    "embed": {
     "flags": 0,
     "color": 1947988,
     "type": "rich",
-    "description": "🥇 **Deniz** — 86 sa 24 dk (212 oturum)\n🥈 **Elif** — 71 sa 12 dk (160 oturum)\n🥉 **Mert** — 64 sa 54 dk (188 oturum)\n▫️ **Ayşe** — 40 sa 18 dk (97 oturum)\n▫️ **Can** — 33 sa 42 dk (120 oturum)\n▫️ **Zeynep** — 21 sa 0 dk (64 oturum)\n▫️ **Bora** — 9 sa 30 dk (31 oturum)",
-    "title": "🏆 Ses Kanalı Şampiyonları (Tüm Zamanlar)"
+    "description": "🥇 **Deniz** — 86 h 24 min (212 sessions)\n🥈 **Elif** — 71 h 12 min (160 sessions)\n🥉 **Mert** — 64 h 54 min (188 sessions)\n▫️ **Ayşe** — 40 h 18 min (97 sessions)\n▫️ **Can** — 33 h 42 min (120 sessions)\n▫️ **Zeynep** — 21 h 0 min (64 sessions)\n▫️ **Bora** — 9 h 30 min (31 sessions)",
+    "title": "🏆 Voice Channel Champions (All Time)"
    },
    "bilesenler": [],
    "komut": "/sesstat top",
-   "genislik": 560
+   "genislik": 560,
+   "kanallar": {
+    "201": "📋・logs",
+    "202": "⚠️・warnings",
+    "203": "👋・welcome",
+    "204": "📤・goodbye",
+    "205": "📢・announcements",
+    "900000000000000301": "🎧 Deniz's room",
+    "302": "🎵 Music"
+   },
+   "roller": {
+    "401": "Member"
+   }
   }
  ]
 }

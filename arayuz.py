@@ -5,6 +5,7 @@ Modern ve premium görünümlü embed'ler için ortak fonksiyonlar.
 import discord
 import datetime
 import shutil
+from dil import _t
 
 
 # ── Paylaşılan Sabitler ──
@@ -54,7 +55,7 @@ MUZIK_PLATFORM_BILGI = {
 def platform_bilgi(extractor):
     """Platform extractor adına göre {ikon, isim, renk} döner. Bilinmiyorsa varsayılan."""
     if not extractor:
-        return {'ikon': '🎶', 'isim': 'Müzik', 'renk': 0x1DB954}
+        return {'ikon': '🎶', 'isim': _t("Müzik"), 'renk': 0x1DB954}
     e = extractor.lower()
     for key, val in MUZIK_PLATFORM_BILGI.items():
         if key in e:
@@ -128,13 +129,13 @@ def sure_insana_cevir(saniye):
     """Saniyeyi okunabilir Türkçe formata çevirir."""
     saniye = int(saniye)
     if saniye < 60:
-        return f"{saniye} saniye"
+        return _t("{saniye} saniye", saniye=saniye)
     elif saniye < 3600:
-        return f"{saniye // 60} dakika"
+        return _t("{d0} dakika", d0=saniye // 60)
     elif saniye < 86400:
-        return f"{saniye // 3600} saat"
+        return _t("{d0} saat", d0=saniye // 3600)
     else:
-        return f"{saniye // 86400} gün"
+        return _t("{d0} gün", d0=saniye // 86400)
 
 
 def mini_card(baslik, deger, emoji=""):

@@ -24,7 +24,7 @@
 
 ## Repo-specific conventions
 
-- All code, variable names, comments, and user-facing strings are in **Turkish**
+- All code, variable names and comments are in **Turkish**. User-facing strings are Turkish source text wrapped in `_t("…")` (`dil.py`); the English translation lives in `dil_en.py` → `EN` (key = the exact Turkish template, `{placeholders}` identical). The active language is the guild's `/dil` setting, set automatically per slash command / component / event via a contextvar; background tasks use `dilli_gorev(coro, guild)` or `dil_ayarla(guild)`. Never build `_t` keys with f-strings; constants defined at import time are translated at the use site (`_t(SABIT)`). Channel/role NAMES used for lookup are not translated. `tests/dil_test.py` fails on any missing translation (`--eksik` dumps them)
 - Cog-based architecture: each feature is a separate file in `cogs/`; retired cogs live in `cogs_devre_disi/` (not loaded)
 - Paths/config live in `yapilandirma.py` (`BOT_DIZINI`, `DB_DOSYA`, `VERI_DIZINI`, `GECICI_DIZIN`, `YTDL_CACHE_DIZINI`, `SAHIP_ID`, `PREFIX`, `ESKI_EKONOMI_SUNUCU_ID`, `GUVENILIR_IDLER`, `EK_COGLAR`, `DURUM_MESAJLARI`, `ONAY_*`). Every path is resolved relative to the bot directory, never the CWD. `.env` is loaded from the bot directory
 - Shared UI constants and helpers live in `arayuz.py` (`FFMPEG_YOLU`, `DURUM_TIPLERI`, `Renkler`, embed builders)

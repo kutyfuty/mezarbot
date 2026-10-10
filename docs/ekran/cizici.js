@@ -12,7 +12,8 @@ function playwright() {
 
 const DIZIN = __dirname;
 const veri = JSON.parse(fs.readFileSync(path.join(DIZIN, 'sahneler.json'), 'utf8'));
-const KISILER = veri.kisiler, KANALLAR = veri.kanallar, ROLLER = veri.roller;
+const KISILER = veri.kisiler;
+let KANALLAR = {}, ROLLER = {};   // sahneye (dile) göre
 
 const kacis = (m) => String(m).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -64,7 +65,8 @@ function bilesenHtml(satirlar) {
 
 let ZAMAN = '';
 function sayfa(s) {
-  const en = /-en$/.test(s.ad);
+  const en = s.dil === 'en';
+  KANALLAR = s.kanallar || {}; ROLLER = s.roller || {};
   ZAMAN = en ? 'Today at 21:30' : 'Bugün 21:30';
   const komut = s.komut ? `<div class="reply"><span class="rav"></span><b>Deniz</b> ${en ? `<span class="used">used</span> <span class="lnk">${kacis(s.komut)}</span>` : `<span class="lnk">${kacis(s.komut)}</span> <span class="used">kullandı</span>`}</div>` : '';
   return `<!doctype html><html><head><meta charset="utf-8"><style>

@@ -26,6 +26,7 @@ from .kuyruk import (DONGU_ETIKET, DONGU_SIRASI, DONGU_TAKMA_ADLAR, KuyrukDolu, 
 from .oynatici import Oynatici
 from .panel import (MUZIK_RENGI, MuzikPaneli, SayfaGorunumu, bosta_embedi, calma_embedi, gecmis_embedi,
                     kuyruk_embedi, parca_satiri)
+from dil import _t, dil_ayarla, dilli_gorev
 
 logger = logging.getLogger('MezarBot.Muzik')
 
@@ -228,10 +229,10 @@ class Muzik(commands.Cog):
         """Kontrol komutları için yetki/konum kontrolü. Hata metni ya da None."""
         vc = uye.guild.voice_client
         if vc and vc.channel and not (uye.voice and uye.voice.channel == vc.channel) and not yonetici_mi(uye):
-            return f"🎧 Bunu yapmak için benimle aynı ses kanalında (**{vc.channel.name}**) olmalısın."
+            return _t("🎧 Bunu yapmak için benimle aynı ses kanalında (**{name}**) olmalısın.", name=vc.channel.name)
         if dj_gerekli and not self._dj_mi(uye):
             rol_id = mdb.muzik_ayar_al(uye.guild.id).get('dj_rol_id')
-            return f"🎚️ Bu işlem için **DJ rolü** (<@&{rol_id}>) gerekli."
+            return _t("🎚️ Bu işlem için **DJ rolü** (<@&{rol_id}>) gerekli.", rol_id=rol_id)
         return None
 
     async def _yanit(self, ctx, icerik=None, embed=None, gizli=True, sure=10, view=None):
@@ -302,7 +303,7 @@ class Muzik(commands.Cog):
             return
         gecen = time.monotonic() - self._panel_son.get(gid, 0.0)
         bekle = 0.0 if hemen else max(0.0, PANEL_MIN_ARALIK - gecen)
-        self._panel_gorev[gid] = asyncio.create_task(self._panel_yaz(gid, bekle))
+        self._panel_gorev[gid] = dilli_gorev(self._panel_yaz(gid, bekle), gid)
 
     async def _panel_yaz(self, gid, bekle):
         if bekle:
@@ -341,7 +342,7 @@ class Muzik(commands.Cog):
         mdb.muzik_ayar_guncelle(gid, panel_kanal_id=kanal.id, panel_mesaj_id=mesaj.id)
         if istek is not None and izin.manage_messages:
             try:
-                await mesaj.pin(reason="MezarBot müzik paneli")
+                await mesaj.pin(reason=_t("MezarBot müzik paneli"))
             except discord.HTTPException:
                 pass
 
@@ -448,9 +449,9 @@ class Muzik(commands.Cog):
         if mdb.muzik_ayar_al(guild.id).get('surekli_mod') and oyn is not None:
             oyn.durdur()
             await self.panel_guncelle(guild.id, hemen=True)
-            return "⏹️ Durduruldu, kuyruk temizlendi. (7/24 modu: kanalda kalıyorum)"
+            return _t("⏹️ Durduruldu, kuyruk temizlendi. (7/24 modu: kanalda kalıyorum)")
         await self._cleanup_guild(guild.id)
-        return "⏹️ Durduruldu ve kanaldan ayrıldım."
+        return _t("⏹️ Durduruldu ve kanaldan ayrıldım.")
 
     # ══════════════════════════════════════════════
     #  SES BAĞLANTISI + ÇALMA
@@ -460,11 +461,11 @@ class Muzik(commands.Cog):
         """→ (oynatici, hata_metni)."""
         guild = uye.guild
         if not uye.voice or not uye.voice.channel:
-            return None, "❌ Önce bir ses kanalına gir!"
+            return None, _t("❌ Önce bir ses kanalına gir!")
         kanal = uye.voice.channel
         izin = kanal.permissions_for(guild.me)
         if not (izin.connect and izin.speak):
-            return None, f"❌ **{kanal.name}** kanalına bağlanma/konuşma yetkim yok."
+            return None, _t("❌ **{name}** kanalına bağlanma/konuşma yetkim yok.", name=kanal.name)
         vc = guild.voice_client
         oyn = self.oynaticilar.get(guild.id)
         if vc is None or not vc.is_connected():
@@ -477,12 +478,12 @@ class Muzik(commands.Cog):
                 self._bilincli_ayrilma.discard(guild.id)
                 vc = await kanal.connect(timeout=20, reconnect=True, self_deaf=True)
             except asyncio.TimeoutError:
-                return None, "❌ Ses bağlantısı zaman aşımına uğradı, tekrar dene."
+                return None, _t("❌ Ses bağlantısı zaman aşımına uğradı, tekrar dene.")
             except discord.ClientException as e:
-                return None, f"❌ Sese bağlanılamadı: {e}"
+                return None, _t("❌ Sese bağlanılamadı: {e}", e=e)
             except RuntimeError as e:   # davey / PyNaCl eksik
                 logger.critical(f"Ses kütüphanesi eksik: {e}")
-                return None, "❌ Botun ses kütüphaneleri eksik (DAVE/davey). Bot sahibine haber ver."
+                return None, _t("❌ Botun ses kütüphaneleri eksik (DAVE/davey). Bot sahibine haber ver.")
             if isinstance(kanal, discord.StageChannel):
                 try:
                     await guild.me.edit(suppress=False)
@@ -491,11 +492,11 @@ class Muzik(commands.Cog):
         elif vc.channel != kanal:
             baska_dinleyen = [m for m in self._insanlar(vc) if m.id != uye.id]
             if oyn and oyn.simdiki and baska_dinleyen and not self._dj_mi(uye):
-                return None, f"🎧 Şu an **{vc.channel.name}** kanalında çalıyorum — oraya gel ya da DJ'e söyle."
+                return None, _t("🎧 Şu an **{name}** kanalında çalıyorum — oraya gel ya da DJ'e söyle.", name=vc.channel.name)
             try:
                 await vc.move_to(kanal)
             except (discord.HTTPException, asyncio.TimeoutError) as e:
-                return None, f"❌ Kanala taşınamadım: {e}"
+                return None, _t("❌ Kanala taşınamadım: {e}", e=e)
         oyn = self.oynatici_al(guild.id)
         if metin_kanal is not None:
             oyn.metin_kanal_id = metin_kanal.id
@@ -515,14 +516,14 @@ class Muzik(commands.Cog):
         if tur == 'spotify_kisa':
             uzun = await self.cozucu.kisa_link_coz(ek)
             if not uzun:
-                raise CozmeHatasi("Spotify kısa linki çözülemedi")
+                raise CozmeHatasi(_t("Spotify kısa linki çözülemedi"))
             tur, ek = girdi_turu(uzun)
             if tur != 'spotify':
-                raise CozmeHatasi("Spotify kısa linki tanınmayan bir sayfaya gidiyor")
+                raise CozmeHatasi(_t("Spotify kısa linki tanınmayan bir sayfaya gidiyor"))
         if tur == 'arama':
             parca = await self.cozucu.arama_parcasi(ek)
             if parca is None:
-                raise CozmeHatasi("sonuç bulunamadı")
+                raise CozmeHatasi(_t("sonuç bulunamadı"))
             return None, [parca], None, 1
         if tur == 'url':
             parca = Parca(sorgu=ek, url=ek)
@@ -532,7 +533,7 @@ class Muzik(commands.Cog):
             alt, sp_id = ek
             baslik, parcalar = await self.cozucu.spotify(alt, sp_id, limit=limit)
             if not parcalar:
-                raise CozmeHatasi("Spotify içeriği okunamadı (özel liste olabilir)")
+                raise CozmeHatasi(_t("Spotify içeriği okunamadı (özel liste olabilir)"))
             return (baslik if alt != 'track' else None), parcalar, None, len(parcalar)
         # playlist (YouTube / YT Music / SoundCloud set)
         ilk = min(ILK_PARTI, limit)
@@ -541,7 +542,7 @@ class Muzik(commands.Cog):
         except (IsciHatasi, asyncio.TimeoutError) as e:
             raise hata_sebebi(e)
         if not parcalar:
-            raise CozmeHatasi("playlist boş ya da özel")
+            raise CozmeHatasi(_t("playlist boş ya da özel"))
         devam = ek if (toplam > ilk or (not toplam and len(parcalar) >= ilk)) and limit > ilk else None
         return baslik, parcalar, devam, max(toplam, len(parcalar))
 
@@ -552,13 +553,13 @@ class Muzik(commands.Cog):
             return await yanit(hata)
         bos_yer = oyn.kuyruk.bos_yer()
         if bos_yer <= 0:
-            return await yanit(f"❌ Kuyruk dolu ({oyn.kuyruk.limit} parça). Biraz çalınmasını bekle ya da `/temizle`.")
+            return await yanit(_t("❌ Kuyruk dolu ({limit} parça). Biraz çalınmasını bekle ya da `/temizle`.", limit=oyn.kuyruk.limit))
         try:
             liste_basligi, parcalar, devam, toplam = await self._girdiden_parcalar(sorgu, bos_yer)
         except CozmeHatasi as h:
-            return await yanit(f"❌ Çalınamıyor: {h.sebep}")
+            return await yanit(_t("❌ Çalınamıyor: {sebep}", sebep=_t(h.sebep)))
         except (IsciHatasi, asyncio.TimeoutError) as e:
-            return await yanit(f"❌ Çalınamıyor: {hata_sebebi(e).sebep}")
+            return await yanit(_t("❌ Çalınamıyor: {sebep}", sebep=_t(hata_sebebi(e).sebep)))
         self._isteyen_ata(parcalar, uye)
         if basa:
             eklenen = 0
@@ -571,23 +572,22 @@ class Muzik(commands.Cog):
         baslayacak = oyn.simdiki is None and not oyn.caliyor_mu() and not oyn.mesgul_mu()
 
         if liste_basligi is not None or len(parcalar) > 1:
-            satirlar = [f"📋 **{discord.utils.escape_markdown(liste_basligi or 'Liste')}** — **{eklenen}** parça "
-                        f"{'sıranın başına' if basa else 'kuyruğa'} eklendi."]
+            satirlar = [_t("📋 **{escape_markdown}** — **{eklenen}** parça {d5} eklendi.", escape_markdown=discord.utils.escape_markdown(liste_basligi or 'Liste'), eklenen=eklenen, d5=_t("sıranın başına") if basa else _t("kuyruğa"))]
             if devam:
-                satirlar.append(f"⏳ Kalan parçalar arka planda ekleniyor… (toplam ~{toplam})")
+                satirlar.append(_t("⏳ Kalan parçalar arka planda ekleniyor… (toplam ~{toplam})", toplam=toplam))
             if eklenen < len(parcalar):
-                satirlar.append(f"⚠️ Kuyruk sınırı ({oyn.kuyruk.limit}) nedeniyle {len(parcalar) - eklenen} parça eklenemedi.")
+                satirlar.append(_t("⚠️ Kuyruk sınırı ({limit}) nedeniyle {d3} parça eklenemedi.", limit=oyn.kuyruk.limit, d3=len(parcalar) - eklenen))
             embed = discord.Embed(color=MUZIK_RENGI, description="\n".join(satirlar))
             if parcalar[0].kucuk_resim:
                 embed.set_thumbnail(url=parcalar[0].kucuk_resim)
         else:
             p = parcalar[0]
             if baslayacak:
-                durum = "▶️ **Şimdi çalınıyor**"
+                durum = _t("▶️ **Şimdi çalınıyor**")
             elif basa:
-                durum = "⏭️ **Sıradaki olarak eklendi**"
+                durum = _t("⏭️ **Sıradaki olarak eklendi**")
             else:
-                durum = f"✅ **Kuyruğa eklendi** · #{len(oyn.kuyruk)}"
+                durum = _t("✅ **Kuyruğa eklendi** · #{len}", len=len(oyn.kuyruk))
             embed = discord.Embed(color=MUZIK_RENGI, description=f"{durum}\n{parca_satiri(p, 70)}")
             if p.kucuk_resim:
                 embed.set_thumbnail(url=p.kucuk_resim)
@@ -609,13 +609,13 @@ class Muzik(commands.Cog):
         try:
             _, parcalar, _ = await self.cozucu.playlist(url, bas, bas + bos - 1)
         except (IsciHatasi, asyncio.TimeoutError) as e:
-            await self.bildir(oyn.guild_id, f"⚠️ Playlist'in kalanı yüklenemedi: {hata_sebebi(e).sebep}")
+            await self.bildir(oyn.guild_id, _t("⚠️ Playlist'in kalanı yüklenemedi: {sebep}", sebep=_t(hata_sebebi(e).sebep)))
             return
         if oyn.kapandi:
             return
         eklenen = oyn.kuyruk.toplu_ekle(self._isteyen_ata(parcalar, uye))
         if eklenen:
-            await self.bildir(oyn.guild_id, f"📋 Playlist'in kalan **{eklenen}** parçası da kuyruğa eklendi.")
+            await self.bildir(oyn.guild_id, _t("📋 Playlist'in kalan **{eklenen}** parçası da kuyruğa eklendi.", eklenen=eklenen))
             oyn._on_coz_baslat()
             await self.panel_guncelle(oyn.guild_id)
 
@@ -623,7 +623,7 @@ class Muzik(commands.Cog):
         liste_id, sahip_id, liste_adi = bulunan
         kayitlar = mdb.liste_parcalari(liste_id)
         if not kayitlar:
-            return await self._yanit(ctx, f"❌ **{liste_adi}** listesi boş.")
+            return await self._yanit(ctx, _t("❌ **{liste_adi}** listesi boş.", liste_adi=liste_adi))
         if not ctx.interaction or not ctx.interaction.response.is_done():
             await ctx.defer()
         oyn, hata = await self._sese_baglan(ctx.author, ctx.channel)
@@ -645,10 +645,10 @@ class Muzik(commands.Cog):
             eklenen = oyn.kuyruk.toplu_ekle(parcalar)
         sahip_notu = ""
         if sahip_id != ctx.author.id:
-            sahip_notu = " (⭐ Sunucu Listesi)" if sahip_id == SAHIP_ID else " (Paylaşılan)"
-        yer_metni = "sıranın başına" if basa else "kuyruğa"
-        await self._yanit(ctx, f"📂 **{liste_adi}**{sahip_notu} — **{eklenen}** parça {yer_metni} eklendi."
-                          + (f" (Kuyruk sınırı: {len(parcalar) - eklenen} eklenemedi)" if eklenen < len(parcalar) else ""),
+            sahip_notu = _t(" (⭐ Sunucu Listesi)") if sahip_id == SAHIP_ID else _t(" (Paylaşılan)")
+        yer_metni = _t("sıranın başına") if basa else _t("kuyruğa")
+        await self._yanit(ctx, _t("📂 **{liste_adi}**{sahip_notu} — **{eklenen}** parça {yer_metni} eklendi.", liste_adi=liste_adi, sahip_notu=sahip_notu, eklenen=eklenen, yer_metni=yer_metni)
+                          + (_t(" (Kuyruk sınırı: {d1} eklenemedi)", d1=len(parcalar) - eklenen) if eklenen < len(parcalar) else ""),
                           gizli=False, sure=15)
         if oyn.simdiki is None and not oyn.caliyor_mu():
             await oyn.baslat_bossa()
@@ -660,9 +660,9 @@ class Muzik(commands.Cog):
         if not sorgu and ctx.message and ctx.message.attachments:
             sorgu = ctx.message.attachments[0].url
         if not sorgu:
-            return await self._yanit(ctx, "❌ Bir şarkı adı ya da link yaz: `/oynat tarkan şımarık`")
+            return await self._yanit(ctx, _t("❌ Bir şarkı adı ya da link yaz: `/oynat tarkan şımarık`"))
         if len(sorgu) > SORGU_UZUNLUK:
-            return await self._yanit(ctx, "❌ Arama metni çok uzun!")
+            return await self._yanit(ctx, _t("❌ Arama metni çok uzun!"))
         if basa:
             hata = self._kontrol_hatasi(ctx.author)
             if hata:
@@ -693,7 +693,7 @@ class Muzik(commands.Cog):
     async def _atla_istegi(self, uye, oyn, oy_kullan=False):
         """Atlama: DJ / şarkıyı isteyen / oylama kapalıysa anında; değilse oy toplar. → mesaj"""
         if oyn is None or oyn.simdiki is None:
-            return "❌ Çalan bir şey yok."
+            return _t("❌ Çalan bir şey yok.")
         hata = self._kontrol_hatasi(uye, dj_gerekli=False)
         if hata:
             return hata
@@ -711,8 +711,8 @@ class Muzik(commands.Cog):
         if len(oyn.oylar) >= gerekli:
             n = len(oyn.oylar)
             sonuc = await oyn.atla()
-            return f"🗳️ Oylama tamam ({n}/{gerekli}) — ⏭️ atlandı." if sonuc == "ok" else "⏳ Geçiş sürüyor…"
-        return f"🗳️ Atlama oyu: **{len(oyn.oylar)}/{gerekli}** — dinleyicilerin %{int(ayar.get('oylama_orani', 0.5) * 100)}'i gerekli."
+            return _t("🗳️ Oylama tamam ({n}/{gerekli}) — ⏭️ atlandı.", n=n, gerekli=gerekli) if sonuc == "ok" else _t("⏳ Geçiş sürüyor…")
+        return _t("🗳️ Atlama oyu: **{len}/{gerekli}** — dinleyicilerin %{int}'i gerekli.", len=len(oyn.oylar), gerekli=gerekli, int=int(ayar.get('oylama_orani', 0.5) * 100))
 
     async def _ses_uygula(self, oyn, deger):
         deger = max(mdb.SES_MIN, min(mdb.SES_MAX, int(deger)))
@@ -729,7 +729,7 @@ class Muzik(commands.Cog):
             deger = None
         if anahtar == "bas0":
             oyn.filtre.bas = 0
-            metin = "Bassboost: Kapalı"
+            metin = _t("Bassboost: Kapalı")
         else:
             try:
                 sayi = float(str(deger).replace(",", ".").rstrip("x")) if deger is not None else None
@@ -771,17 +771,17 @@ class Muzik(commands.Cog):
         # ── Herkese açık, sadece görüntüleme ──
         if eylem == "kuyruk":
             if oyn is None:
-                return await gizli("🎶 Kuyruk boş.")
+                return await gizli(_t("🎶 Kuyruk boş."))
             gorunum = SayfaGorunumu(lambda s: kuyruk_embedi(oyn, s), kullanici_id=uye.id)
             gorunum.mesaj = await gizli(embed=gorunum.ilk(), view=gorunum)
             return
         if eylem == "favori":
             if oyn is None or oyn.simdiki is None:
-                return await gizli("❌ Çalan bir şey yok.")
+                return await gizli(_t("❌ Çalan bir şey yok."))
             return await gizli(self._favoriye_ekle(uye.id, oyn.simdiki))
 
         if oyn is None or (oyn.simdiki is None and eylem != "otomatik"):
-            return await gizli("❌ Şu an çalan bir şey yok. `/oynat` ile başla.")
+            return await gizli(_t("❌ Şu an çalan bir şey yok. `/oynat` ile başla."))
 
         if eylem == "atla":
             await interaction.response.defer()
@@ -808,9 +808,9 @@ class Muzik(commands.Cog):
         elif eylem == "onceki":
             sonuc = await oyn.onceki()
             if sonuc is None:
-                mesaj = "⏮️ Geçmişte önceki bir şarkı yok."
+                mesaj = _t("⏮️ Geçmişte önceki bir şarkı yok.")
             elif sonuc == "mesgul":
-                mesaj = "⏳ Geçiş sürüyor, bir saniye…"
+                mesaj = _t("⏳ Geçiş sürüyor, bir saniye…")
         elif eylem == "durdur":
             mesaj = await self._durdur(guild)
             return await interaction.followup.send(mesaj, ephemeral=True)
@@ -820,7 +820,7 @@ class Muzik(commands.Cog):
             oyn._isitma_planla()
         elif eylem == "karistir":
             if len(oyn.kuyruk) < 2:
-                mesaj = "🔀 Karıştırmak için kuyrukta en az 2 parça olmalı."
+                mesaj = _t("🔀 Karıştırmak için kuyrukta en az 2 parça olmalı.")
             else:
                 oyn.kuyruk.karistir()
                 oyn._on_coz_baslat()
@@ -861,10 +861,10 @@ class Muzik(commands.Cog):
             return f"❌ {h}"
         kayit = parca.veritabani_bicimi()
         if any(p['sorgu'] == kayit['sorgu'] for p in mdb.liste_parcalari(liste_id)):
-            return "❤️ Bu şarkı zaten **Favoriler** listende."
+            return _t("❤️ Bu şarkı zaten **Favoriler** listende.")
         if not mdb.listeye_parca_ekle(liste_id, [kayit]):
-            return f"❌ Liste dolu ({mdb.LISTE_PARCA_LIMITI} parça)."
-        return f"❤️ **{parca.gosterim(60)}** → **Favoriler** listene eklendi. (`/calmalistesi oynat Favoriler`)"
+            return _t("❌ Liste dolu ({LISTE_PARCA_LIMITI} parça).", LISTE_PARCA_LIMITI=mdb.LISTE_PARCA_LIMITI)
+        return _t("❤️ **{gosterim}** → **Favoriler** listene eklendi. (`/calmalistesi oynat Favoriler`)", gosterim=parca.gosterim(60))
 
     # ══════════════════════════════════════════════
     #  KOMUTLAR — ÇALMA
@@ -890,18 +890,18 @@ class Muzik(commands.Cog):
         if hedef:
             n = _tam_sayi(hedef)
             if n is None:
-                return await self._yanit(ctx, "❌ Numara gir: `/atla 3` (sarmak için `/sar 1:30`)")
+                return await self._yanit(ctx, _t("❌ Numara gir: `/atla 3` (sarmak için `/sar 1:30`)"))
             hata = self._kontrol_hatasi(ctx.author)
             if hata:
                 return await self._yanit(ctx, hata)
             if oyn is None or oyn.simdiki is None:
-                return await self._yanit(ctx, "❌ Çalan bir şey yok.")
+                return await self._yanit(ctx, _t("❌ Çalan bir şey yok."))
             try:
                 oyn.kuyruk.atla_konuma(n)
             except IndexError:
-                return await self._yanit(ctx, f"❌ Geçersiz numara (1-{len(oyn.kuyruk)}).")
+                return await self._yanit(ctx, _t("❌ Geçersiz numara (1-{len}).", len=len(oyn.kuyruk)))
             await oyn.atla()
-            return await self._yanit(ctx, f"⏭️ {n}. parçaya atlandı.", gizli=False, sure=6)
+            return await self._yanit(ctx, _t("⏭️ {n}. parçaya atlandı.", n=n), gizli=False, sure=6)
         metin = await self._atla_istegi(ctx.author, oyn)
         await self._yanit(ctx, metin, gizli=not metin.startswith(("⏭️", "🗳️")), sure=8)
 
@@ -919,13 +919,13 @@ class Muzik(commands.Cog):
         if hata:
             return await self._yanit(ctx, hata)
         if oyn is None:
-            return await self._yanit(ctx, "❌ Çalan bir şey yok.")
+            return await self._yanit(ctx, _t("❌ Çalan bir şey yok."))
         sonuc = await oyn.onceki()
         if sonuc is None:
-            return await self._yanit(ctx, "⏮️ Geçmişte önceki bir şarkı yok.")
+            return await self._yanit(ctx, _t("⏮️ Geçmişte önceki bir şarkı yok."))
         if sonuc == "mesgul":
-            return await self._yanit(ctx, "⏳ Geçiş sürüyor, bir saniye…")
-        await self._yanit(ctx, f"⏮️ **{sonuc.gosterim(60)}** tekrar çalıyor.", gizli=False, sure=6)
+            return await self._yanit(ctx, _t("⏳ Geçiş sürüyor, bir saniye…"))
+        await self._yanit(ctx, _t("⏮️ **{gosterim}** tekrar çalıyor.", gosterim=sonuc.gosterim(60)), gizli=False, sure=6)
 
     @commands.hybrid_command(name="duraklat", aliases=["pause"], description="Müziği duraklatır")
     async def duraklat(self, ctx):
@@ -934,10 +934,10 @@ class Muzik(commands.Cog):
             return await self._yanit(ctx, hata)
         vc = ctx.guild.voice_client
         if not vc or not vc.is_playing():
-            return await self._yanit(ctx, "❌ Çalan bir şey yok.")
+            return await self._yanit(ctx, _t("❌ Çalan bir şey yok."))
         vc.pause()
         await self.panel_guncelle(ctx.guild.id, hemen=True)
-        await self._yanit(ctx, "⏸️ Duraklatıldı.", gizli=False, sure=5)
+        await self._yanit(ctx, _t("⏸️ Duraklatıldı."), gizli=False, sure=5)
 
     @commands.hybrid_command(name="devam", aliases=["resume", "surdur", "sürdür"], description="Duraklatılan müziği sürdürür")
     async def devam(self, ctx):
@@ -946,13 +946,13 @@ class Muzik(commands.Cog):
             return await self._yanit(ctx, hata)
         vc = ctx.guild.voice_client
         if not vc or not vc.is_paused():
-            return await self._yanit(ctx, "❌ Duraklatılmış bir şey yok.")
+            return await self._yanit(ctx, _t("❌ Duraklatılmış bir şey yok."))
         vc.resume()
         oyn = self.oynaticilar.get(ctx.guild.id)
         if oyn:
             oyn.otomatik_duraklatildi = False
         await self.panel_guncelle(ctx.guild.id, hemen=True)
-        await self._yanit(ctx, "▶️ Devam ediyor.", gizli=False, sure=5)
+        await self._yanit(ctx, _t("▶️ Devam ediyor."), gizli=False, sure=5)
 
     @commands.hybrid_command(name="durdur", aliases=["stop"],
                              description="Çalmayı durdurur ve kuyruğu temizler (7/24 kapalıysa kanaldan ayrılır)")
@@ -961,7 +961,7 @@ class Muzik(commands.Cog):
         if hata:
             return await self._yanit(ctx, hata)
         if ctx.guild.voice_client is None and ctx.guild.id not in self.oynaticilar:
-            return await self._yanit(ctx, "❌ Zaten çalan bir şey yok.")
+            return await self._yanit(ctx, _t("❌ Zaten çalan bir şey yok."))
         await self._yanit(ctx, await self._durdur(ctx.guild), gizli=False, sure=8)
 
     async def _sar_ortak(self, ctx, metin, isaret_zorla=None):
@@ -970,12 +970,12 @@ class Muzik(commands.Cog):
             return await self._yanit(ctx, hata)
         oyn = self.oynaticilar.get(ctx.guild.id)
         if oyn is None or oyn.simdiki is None:
-            return await self._yanit(ctx, "❌ Çalan bir şey yok.")
+            return await self._yanit(ctx, _t("❌ Çalan bir şey yok."))
         if oyn.simdiki.canli:
-            return await self._yanit(ctx, "🔴 Canlı yayında sarılamaz.")
+            return await self._yanit(ctx, _t("🔴 Canlı yayında sarılamaz."))
         saniye, isaret = sure_coz(metin)
         if saniye is None:
-            return await self._yanit(ctx, "❌ Geçersiz süre. Örnekler: `1:30`, `90`, `+30`, `-10`, `2m15s`")
+            return await self._yanit(ctx, _t("❌ Geçersiz süre. Örnekler: `1:30`, `90`, `+30`, `-10`, `2m15s`"))
         if isaret_zorla is not None:
             isaret = isaret_zorla
         hedef = hedef_konum(oyn.konum(), saniye, isaret, oyn.simdiki.sure)
@@ -983,9 +983,9 @@ class Muzik(commands.Cog):
         if await oyn.yeniden_baslat(hedef):
             await self.panel_guncelle(ctx.guild.id, hemen=True)
             ok = "⏩" if isaret >= 0 else "⏪"
-            await self._yanit(ctx, f"{ok} `{sure_metni(hedef)}` konumuna sarıldı.", gizli=False, sure=5)
+            await self._yanit(ctx, _t("{ok} `{sure_metni}` konumuna sarıldı.", ok=ok, sure_metni=sure_metni(hedef)), gizli=False, sure=5)
         else:
-            await self._yanit(ctx, "❌ Sarma başarısız oldu.")
+            await self._yanit(ctx, _t("❌ Sarma başarısız oldu."))
 
     @commands.hybrid_command(name="sar", aliases=["seek"], description="Şarkıda belirli bir ana sarar (1:30, +30, -10)")
     @app_commands.describe(zaman="Örnek: 1:30 (mutlak), +30 (ileri), -10 (geri)")
@@ -1011,7 +1011,7 @@ class Muzik(commands.Cog):
     async def kuyruk(self, ctx):
         oyn = self.oynaticilar.get(ctx.guild.id)
         if oyn is None or (oyn.simdiki is None and oyn.kuyruk.bos_mu()):
-            return await self._yanit(ctx, "🎶 Kuyruk boş. `/oynat` ile şarkı ekle.")
+            return await self._yanit(ctx, _t("🎶 Kuyruk boş. `/oynat` ile şarkı ekle."))
         gorunum = SayfaGorunumu(lambda s: kuyruk_embedi(oyn, s), kullanici_id=ctx.author.id)
         gorunum.mesaj = await self._yanit(ctx, embed=gorunum.ilk(), view=gorunum, gizli=True, sure=180)
 
@@ -1021,19 +1021,19 @@ class Muzik(commands.Cog):
         oyn = self.oynaticilar.get(ctx.guild.id)
         n = _tam_sayi(numara)
         if oyn is None or oyn.kuyruk.bos_mu():
-            return await self._yanit(ctx, "❌ Kuyruk boş.")
+            return await self._yanit(ctx, _t("❌ Kuyruk boş."))
         if n is None or not 1 <= n <= len(oyn.kuyruk):
-            return await self._yanit(ctx, f"❌ Geçersiz numara (1-{len(oyn.kuyruk)}).")
+            return await self._yanit(ctx, _t("❌ Geçersiz numara (1-{len}).", len=len(oyn.kuyruk)))
         parca = oyn.kuyruk[n - 1]
         if parca.isteyen_id != ctx.author.id:
             hata = self._kontrol_hatasi(ctx.author)
             if hata:
-                return await self._yanit(ctx, hata + " (Kendi eklediğin parçaları kaldırabilirsin.)")
+                return await self._yanit(ctx, hata + _t(" (Kendi eklediğin parçaları kaldırabilirsin.)"))
         oyn.kuyruk.kaldir(n)
         oyn._on_coz_baslat()
         oyn._isitma_planla()
         await self.panel_guncelle(ctx.guild.id)
-        await self._yanit(ctx, f"🗑️ **{parca.gosterim(60)}** kaldırıldı.", gizli=False, sure=6)
+        await self._yanit(ctx, _t("🗑️ **{gosterim}** kaldırıldı.", gosterim=parca.gosterim(60)), gizli=False, sure=6)
 
     @commands.hybrid_command(name="tasi", aliases=["taşı", "move", "mv"], description="Kuyrukta parçanın yerini değiştirir")
     @app_commands.describe(kimden="Taşınacak parçanın numarası", kime="Yeni konumu")
@@ -1044,11 +1044,11 @@ class Muzik(commands.Cog):
         oyn = self.oynaticilar.get(ctx.guild.id)
         a, b = _tam_sayi(kimden), _tam_sayi(kime)
         if oyn is None or oyn.kuyruk.bos_mu():
-            return await self._yanit(ctx, "❌ Kuyruk boş.")
+            return await self._yanit(ctx, _t("❌ Kuyruk boş."))
         try:
             parca = oyn.kuyruk.tasi(a or 0, b or 0)
         except IndexError:
-            return await self._yanit(ctx, f"❌ Geçersiz numara (1-{len(oyn.kuyruk)}).")
+            return await self._yanit(ctx, _t("❌ Geçersiz numara (1-{len}).", len=len(oyn.kuyruk)))
         oyn._on_coz_baslat()
         oyn._isitma_planla()
         await self.panel_guncelle(ctx.guild.id)
@@ -1061,25 +1061,25 @@ class Muzik(commands.Cog):
             return await self._yanit(ctx, hata)
         oyn = self.oynaticilar.get(ctx.guild.id)
         if oyn is None or len(oyn.kuyruk) < 2:
-            return await self._yanit(ctx, "❌ Karıştırmak için kuyrukta en az 2 parça olmalı.")
+            return await self._yanit(ctx, _t("❌ Karıştırmak için kuyrukta en az 2 parça olmalı."))
         oyn.kuyruk.karistir()
         oyn._on_coz_baslat()
         oyn._isitma_planla()
         await self.panel_guncelle(ctx.guild.id)
-        await self._yanit(ctx, "🔀 Kuyruk karıştırıldı!", gizli=False, sure=5)
+        await self._yanit(ctx, _t("🔀 Kuyruk karıştırıldı!"), gizli=False, sure=5)
 
     @commands.hybrid_command(name="temizle", aliases=["clear", "kuyruktemizle"],
                              description="Kuyruğu temizler (DJ değilsen sadece kendi eklediklerini)")
     async def temizle(self, ctx):
         oyn = self.oynaticilar.get(ctx.guild.id)
         if oyn is None or oyn.kuyruk.bos_mu():
-            return await self._yanit(ctx, "❌ Kuyruk zaten boş.")
+            return await self._yanit(ctx, _t("❌ Kuyruk zaten boş."))
         if self._kontrol_hatasi(ctx.author):
             n = oyn.kuyruk.kullanicinin_parcalarini_kaldir(ctx.author.id)
-            metin = f"🧹 Kendi eklediğin **{n}** parça kaldırıldı."
+            metin = _t("🧹 Kendi eklediğin **{n}** parça kaldırıldı.", n=n)
         else:
             n = oyn.kuyruk.temizle()
-            metin = f"🧹 Kuyruk temizlendi ({n} parça)."
+            metin = _t("🧹 Kuyruk temizlendi ({n} parça).", n=n)
         oyn._on_coz_baslat()
         oyn._isitma_planla()
         await self.panel_guncelle(ctx.guild.id)
@@ -1096,7 +1096,7 @@ class Muzik(commands.Cog):
         if mod:
             yeni = DONGU_TAKMA_ADLAR.get(mod.casefold())
             if yeni is None:
-                return await self._yanit(ctx, "❌ Mod: `kapalı`, `şarkı` ya da `kuyruk`")
+                return await self._yanit(ctx, _t("❌ Mod: `kapalı`, `şarkı` ya da `kuyruk`"))
         else:
             yeni = dongu_sonraki_mod(oyn.dongu)
         oyn.dongu = yeni
@@ -1104,12 +1104,12 @@ class Muzik(commands.Cog):
         oyn._isitma_planla()
         await self.panel_guncelle(ctx.guild.id)
         emoji = {"kapali": "➡️", "sarki": "🔂", "kuyruk": "🔁"}[yeni]
-        await self._yanit(ctx, f"{emoji} Döngü: **{DONGU_ETIKET[yeni]}**", gizli=False, sure=5)
+        await self._yanit(ctx, _t("{emoji} Döngü: **{DONGU_ETIKET}**", emoji=emoji, DONGU_ETIKET=_t(DONGU_ETIKET[yeni])), gizli=False, sure=5)
 
     @dongu.autocomplete("mod")
     async def _dongu_ac(self, interaction, current: str):
-        return [app_commands.Choice(name=DONGU_ETIKET[m], value=m) for m in DONGU_SIRASI
-                if current.casefold() in DONGU_ETIKET[m].casefold() or current.casefold() in m]
+        return [app_commands.Choice(name=_t(DONGU_ETIKET[m]), value=m) for m in DONGU_SIRASI
+                if current.casefold() in _t(DONGU_ETIKET[m]).casefold() or current.casefold() in m]
 
     @commands.hybrid_command(name="ses", aliases=["volume", "vol"], description="Ses seviyesi (0-150, sunucuya özel hatırlanır)")
     @app_commands.describe(seviye="0-150 arası, ya da +10 / -10")
@@ -1117,7 +1117,7 @@ class Muzik(commands.Cog):
         oyn = self.oynaticilar.get(ctx.guild.id)
         mevcut = oyn.ses if oyn else (mdb.muzik_ayar_al(ctx.guild.id).get('son_ses') or mdb.muzik_ayar_al(ctx.guild.id)['varsayilan_ses'])
         if seviye is None:
-            return await self._yanit(ctx, f"🔊 Ses: **%{mevcut}**  (değiştirmek: `/ses 80`, `/ses +10`)")
+            return await self._yanit(ctx, _t("🔊 Ses: **%{mevcut}**  (değiştirmek: `/ses 80`, `/ses +10`)", mevcut=mevcut))
         hata = self._kontrol_hatasi(ctx.author)
         if hata:
             return await self._yanit(ctx, hata)
@@ -1125,17 +1125,17 @@ class Muzik(commands.Cog):
         goreli = metin[:1] in "+-"
         sayi = _tam_sayi(metin)
         if sayi is None:
-            return await self._yanit(ctx, "❌ 0-150 arası bir sayı gir.")
+            return await self._yanit(ctx, _t("❌ 0-150 arası bir sayı gir."))
         hedef = mevcut + sayi if goreli else sayi
         if not goreli and not mdb.SES_MIN <= hedef <= mdb.SES_MAX:
-            return await self._yanit(ctx, f"❌ Ses {mdb.SES_MIN}-{mdb.SES_MAX} arası olmalı.")
+            return await self._yanit(ctx, _t("❌ Ses {SES_MIN}-{SES_MAX} arası olmalı.", SES_MIN=mdb.SES_MIN, SES_MAX=mdb.SES_MAX))
         if oyn is None:
             hedef = max(mdb.SES_MIN, min(mdb.SES_MAX, hedef))
             mdb.muzik_ayar_guncelle(ctx.guild.id, son_ses=hedef)
         else:
             hedef = await self._ses_uygula(oyn, hedef)
         emoji = "🔇" if hedef == 0 else "🔉" if hedef < 60 else "🔊"
-        await self._yanit(ctx, f"{emoji} Ses **%{hedef}**" + (" · 📢 %100 üstü sesi bozabilir" if hedef > 100 else ""),
+        await self._yanit(ctx, _t("{emoji} Ses **%{hedef}**", emoji=emoji, hedef=hedef) + (_t(" · 📢 %100 üstü sesi bozabilir") if hedef > 100 else ""),
                           gizli=False, sure=5)
 
     @commands.hybrid_command(name="simdi", aliases=["şimdi", "np", "nowplaying", "simdiki", "şimdiki", "calan"],
@@ -1143,19 +1143,19 @@ class Muzik(commands.Cog):
     async def simdi(self, ctx):
         oyn = self.oynaticilar.get(ctx.guild.id)
         if oyn is None or oyn.simdiki is None:
-            return await self._yanit(ctx, "🎶 Şu an bir şey çalmıyor.")
+            return await self._yanit(ctx, _t("🎶 Şu an bir şey çalmıyor."))
         if self._istek_kanali(ctx.guild) is not None:
             return await self._yanit(ctx, embed=calma_embedi(oyn))
         await self._panel_tasi(ctx.guild, ctx.channel)
         if ctx.interaction is not None:
-            await self._yanit(ctx, "🎛️ Kontrol paneli bu kanala taşındı.")
+            await self._yanit(ctx, _t("🎛️ Kontrol paneli bu kanala taşındı."))
 
     @commands.hybrid_command(name="muzikgecmis", aliases=["mgecmis", "history", "sonçalanlar", "soncalanlar"],
                              description="Bu sunucuda son çalınan şarkılar")
     async def muzikgecmis(self, ctx):
         oyn = self.oynaticilar.get(ctx.guild.id)
         if oyn is None or len(oyn.gecmis) == 0:
-            return await self._yanit(ctx, "🕘 Henüz bir şey çalınmadı.")
+            return await self._yanit(ctx, _t("🕘 Henüz bir şey çalınmadı."))
         await self._yanit(ctx, embed=gecmis_embedi(oyn), gizli=True, sure=60)
 
     # ══════════════════════════════════════════════
@@ -1166,26 +1166,26 @@ class Muzik(commands.Cog):
         oyn = self.oynaticilar.get(ctx.guild.id)
         if not secim:
             aktif = oyn.filtre.ozet() if oyn else []
-            satirlar = [f"{emoji} `{k}` — {etiket}: {aciklama}" for k, (etiket, emoji, aciklama) in FILTRE_SECENEKLERI.items()]
-            embed = discord.Embed(color=MUZIK_RENGI, title="🎛️ Filtreler",
-                                  description=f"**Aktif:** {', '.join(aktif) if aktif else 'Yok'}\n\n" + "\n".join(satirlar))
-            embed.set_footer(text="Kullanım: /filtre nightcore · /filtre bas 3 · /filtre hiz 1.25 · /filtre kapat")
+            satirlar = [f"{emoji} `{k}` — {_t(etiket)}: {_t(aciklama)}" for k, (etiket, emoji, aciklama) in FILTRE_SECENEKLERI.items()]
+            embed = discord.Embed(color=MUZIK_RENGI, title=_t("🎛️ Filtreler"),
+                                  description=_t("**Aktif:** {d1}\n\n", d1=', '.join(aktif) if aktif else 'Yok') + "\n".join(satirlar))
+            embed.set_footer(text=_t("Kullanım: /filtre nightcore · /filtre bas 3 · /filtre hiz 1.25 · /filtre kapat"))
             return await self._yanit(ctx, embed=embed, sure=60)
         hata = self._kontrol_hatasi(ctx.author)
         if hata:
             return await self._yanit(ctx, hata)
         if oyn is None or oyn.simdiki is None:
-            return await self._yanit(ctx, "❌ Çalan bir şey yok.")
+            return await self._yanit(ctx, _t("❌ Çalan bir şey yok."))
         anahtar = _FILTRE_TAKMA.get(secim.casefold(), secim.casefold())
         if anahtar not in FILTRE_SECENEKLERI and anahtar not in ("bas", "bas0", "hiz", "bassboost"):
-            return await self._yanit(ctx, f"❌ Bilinmeyen filtre: `{secim}` — liste için `/filtre`")
+            return await self._yanit(ctx, _t("❌ Bilinmeyen filtre: `{secim}` — liste için `/filtre`", secim=secim))
         await ctx.defer()
         try:
             metin = await self._filtre_uygula(oyn, anahtar, deger)
         except ValueError:
-            return await self._yanit(ctx, "❌ Geçersiz değer.")
+            return await self._yanit(ctx, _t("❌ Geçersiz değer."))
         aktif = oyn.filtre.ozet()
-        await self._yanit(ctx, f"🎛️ {metin}" + (f"\n-# Aktif: {', '.join(aktif)}" if aktif else ""), gizli=False, sure=8)
+        await self._yanit(ctx, f"🎛️ {metin}" + (_t("\n-# Aktif: {join}", join=', '.join(aktif)) if aktif else ""), gizli=False, sure=8)
 
     # Efekt komutları (/filtre, !bassboost, !nightcore, !vaporwave, !8d, !karaoke, !hiz) sahibin isteğiyle
     # kaldırıldı (2026-09-13) — varsayılan "normal" ses. Sadece ses dengeleme kalıyor (+ /muzikayar normalizasyon).
@@ -1206,15 +1206,15 @@ class Muzik(commands.Cog):
         try:
             yeni = _ac_kapat(durum, oyn.otomatik)
         except ValueError:
-            return await self._yanit(ctx, "❌ `aç` ya da `kapat` yaz.")
+            return await self._yanit(ctx, _t("❌ `aç` ya da `kapat` yaz."))
         oyn.otomatik = yeni
         mdb.muzik_ayar_guncelle(ctx.guild.id, otomatik_oynatma=int(yeni))
         if not yeni:
             oyn.kuyruk.otomatikleri_kaldir()
         oyn._on_coz_baslat()
         await self.panel_guncelle(ctx.guild.id)
-        await self._yanit(ctx, f"📻 Otomatik oynatma: **{'Açık' if yeni else 'Kapalı'}**"
-                          + (" — kuyruk bitince benzer şarkılar çalacak." if yeni else ""), gizli=False, sure=6)
+        await self._yanit(ctx, _t("📻 Otomatik oynatma: **{d1}**", d1=_t("Açık") if yeni else _t("Kapalı"))
+                          + (_t(" — kuyruk bitince benzer şarkılar çalacak.") if yeni else ""), gizli=False, sure=6)
 
     # ══════════════════════════════════════════════
     #  KOMUTLAR — BAĞLANTI
@@ -1225,18 +1225,18 @@ class Muzik(commands.Cog):
         oyn, hata = await self._sese_baglan(ctx.author, ctx.channel)
         if hata:
             return await self._yanit(ctx, hata)
-        await self._yanit(ctx, f"✅ **{ctx.author.voice.channel.name}** kanalındayım. `/oynat` ile başla!", gizli=False, sure=8)
+        await self._yanit(ctx, _t("✅ **{name}** kanalındayım. `/oynat` ile başla!", name=ctx.author.voice.channel.name), gizli=False, sure=8)
 
     @commands.hybrid_command(name="cik", aliases=["çık", "leave", "dc", "disconnect", "bye"],
                              description="Botu ses kanalından çıkarır (kuyruk temizlenir)")
     async def cik(self, ctx):
         if ctx.guild.voice_client is None and ctx.guild.id not in self.oynaticilar:
-            return await self._yanit(ctx, "❌ Zaten bir ses kanalında değilim.")
+            return await self._yanit(ctx, _t("❌ Zaten bir ses kanalında değilim."))
         hata = self._kontrol_hatasi(ctx.author)
         if hata:
             return await self._yanit(ctx, hata)
         await self._cleanup_guild(ctx.guild.id)
-        await self._yanit(ctx, "👋 Görüşürüz!", gizli=False, sure=5)
+        await self._yanit(ctx, _t("👋 Görüşürüz!"), gizli=False, sure=5)
 
     # ══════════════════════════════════════════════
     #  KOMUTLAR — KİŞİSEL ÇALMA LİSTELERİ
@@ -1252,27 +1252,26 @@ class Muzik(commands.Cog):
             kisisel = mdb.listeleri_al(uid)
             genel = mdb.genel_listeleri_al(haric_kullanici_id=uid)
             if not kisisel and not genel:
-                return await self._yanit(ctx, "📂 Henüz kayıtlı liste yok. Çalan kuyruğu kaydet: `/calmalistesi kaydet <ad>` "
-                                              "· ya da panelde ❤️ ile favorilere ekle.")
-            embed = discord.Embed(color=MUZIK_RENGI, title="📂 Çalma Listeleri")
+                return await self._yanit(ctx, _t("📂 Henüz kayıtlı liste yok. Çalan kuyruğu kaydet: `/calmalistesi kaydet <ad>` · ya da panelde ❤️ ile favorilere ekle."))
+            embed = discord.Embed(color=MUZIK_RENGI, title=_t("📂 Çalma Listeleri"))
             alanlar = []
             if kisisel:
-                alanlar.append("👤 **Kişisel Listelerin:**\n" + "\n".join(
+                alanlar.append(_t("👤 **Kişisel Listelerin:**\n") + "\n".join(
                     f"• **{discord.utils.escape_markdown(lad)}** — {n} parça"
                     + (f" · {sure_metni(sure)}" if sure else "") for _, lad, n, sure in kisisel
                 ))
             if genel:
-                alanlar.append("⭐ **Genel / Paylaşılan Listeler:**\n" + "\n".join(
+                alanlar.append(_t("⭐ **Genel / Paylaşılan Listeler:**\n") + "\n".join(
                     f"• **{discord.utils.escape_markdown(lad)}** — {n} parça"
                     + (f" · {sure_metni(sure)}" if sure else "") for _, lad, n, sure, _ in genel
                 ))
             embed.description = "\n\n".join(alanlar)
-            embed.set_footer(text="Çal: /calmalistesi oynat <ad> · İçerik: /calmalistesi goster <ad>")
+            embed.set_footer(text=_t("Çal: /calmalistesi oynat <ad> · İçerik: /calmalistesi goster <ad>"))
             return await self._yanit(ctx, embed=embed, sure=60)
 
         bulunan = mdb.liste_bul_ayrintili(uid, ad, genel_ara=True)
         if bulunan is None:
-            return await self._yanit(ctx, f"❌ **{ad}** adında bir liste bulunamadı.")
+            return await self._yanit(ctx, _t("❌ **{ad}** adında bir liste bulunamadı.", ad=ad))
         liste_id, sahip_id, liste_adi = bulunan
         parcalar = mdb.liste_parcalari(liste_id)
 
@@ -1284,9 +1283,9 @@ class Muzik(commands.Cog):
                 baslik = discord.utils.escape_markdown((p['baslik'] or p['sorgu'])[:60])
                 satirlar.append(f"`{i:>3}.` " + (f"[{baslik}]({p['url']})" if p.get('url') else baslik)
                                 + (f" `{sure_metni(p['sure'])}`" if p.get('sure') else ""))
-            etiket = " (Sana ait)" if sahip_id == uid else (" (⭐ Sunucu Listesi)" if sahip_id == SAHIP_ID else " (Paylaşılan)")
-            embed = discord.Embed(color=MUZIK_RENGI, title=f"📂 {liste_adi}{etiket}", description="\n".join(satirlar) or "*Boş liste*")
-            embed.set_footer(text=f"Sayfa {sayfa + 1}/{n} • {len(parcalar)} parça")
+            etiket = _t(" (Sana ait)") if sahip_id == uid else (_t(" (⭐ Sunucu Listesi)") if sahip_id == SAHIP_ID else _t(" (Paylaşılan)"))
+            embed = discord.Embed(color=MUZIK_RENGI, title=f"📂 {liste_adi}{etiket}", description="\n".join(satirlar) or _t("*Boş liste*"))
+            embed.set_footer(text=_t("Sayfa {d1}/{n} • {len} parça", d1=sayfa + 1, n=n, len=len(parcalar)))
             return embed, n
         gorunum = SayfaGorunumu(uretici, kullanici_id=uid)
         gorunum.mesaj = await self._yanit(ctx, embed=gorunum.ilk(), view=gorunum, sure=180)
@@ -1298,13 +1297,13 @@ class Muzik(commands.Cog):
         parcalar = ([oyn.simdiki] if oyn and oyn.simdiki else []) + (list(oyn.kuyruk) if oyn else [])
         parcalar = [p for p in parcalar if not p.otomatik] or parcalar
         if not parcalar:
-            return await self._yanit(ctx, "❌ Kaydedilecek bir şey yok (çalan şarkı / kuyruk boş).")
+            return await self._yanit(ctx, _t("❌ Kaydedilecek bir şey yok (çalan şarkı / kuyruk boş)."))
         try:
             liste_id = mdb.liste_olustur(ctx.author.id, ad)
         except mdb.ListeHatasi as h:
             return await self._yanit(ctx, f"❌ {h}")
         n = mdb.listeye_parca_ekle(liste_id, [p.veritabani_bicimi() for p in parcalar], bastan_yaz=True)
-        await self._yanit(ctx, f"💾 **{ad}** listesine **{n}** parça kaydedildi.")
+        await self._yanit(ctx, _t("💾 **{ad}** listesine **{n}** parça kaydedildi.", ad=ad, n=n))
 
     @calmalistesi.command(name="ekle", description="Listene şarkı ekler (boş: çalan şarkı)")
     @app_commands.describe(ad="Liste adı", sorgu="Şarkı adı / link (boş: çalan şarkı)")
@@ -1316,25 +1315,25 @@ class Muzik(commands.Cog):
         if not sorgu:
             oyn = self.oynaticilar.get(ctx.guild.id)
             if oyn is None or oyn.simdiki is None:
-                return await self._yanit(ctx, "❌ Çalan bir şey yok — eklemek için şarkı adı/link yaz.")
+                return await self._yanit(ctx, _t("❌ Çalan bir şey yok — eklemek için şarkı adı/link yaz."))
             parcalar = [oyn.simdiki]
         else:
             await ctx.defer(ephemeral=True)
             try:
                 _, parcalar, _, _ = await self._girdiden_parcalar(sorgu[:SORGU_UZUNLUK], mdb.LISTE_PARCA_LIMITI)
             except (CozmeHatasi, IsciHatasi, asyncio.TimeoutError) as e:
-                return await self._yanit(ctx, f"❌ Eklenemedi: {hata_sebebi(e).sebep}")
+                return await self._yanit(ctx, _t("❌ Eklenemedi: {sebep}", sebep=_t(hata_sebebi(e).sebep)))
         n = mdb.listeye_parca_ekle(liste_id, [p.veritabani_bicimi() for p in parcalar])
         if not n:
-            return await self._yanit(ctx, f"❌ Liste dolu ({mdb.LISTE_PARCA_LIMITI} parça).")
-        await self._yanit(ctx, f"➕ **{ad}** listesine {n} parça eklendi" + (f": **{parcalar[0].gosterim(50)}**" if n == 1 else "."))
+            return await self._yanit(ctx, _t("❌ Liste dolu ({LISTE_PARCA_LIMITI} parça).", LISTE_PARCA_LIMITI=mdb.LISTE_PARCA_LIMITI))
+        await self._yanit(ctx, _t("➕ **{ad}** listesine {n} parça eklendi", ad=ad, n=n) + (f": **{parcalar[0].gosterim(50)}**" if n == 1 else "."))
 
     @calmalistesi.command(name="oynat", description="Çalma listesini kuyruğa ekler")
     @app_commands.describe(ad="Liste adı (varsayılan: Favoriler)", karistir="Karıştırarak ekle (evet/hayır)")
     async def cl_oynat(self, ctx, ad: str = "Favoriler", karistir: str = None):
         bulunan = mdb.liste_bul_ayrintili(ctx.author.id, ad, genel_ara=True)
         if bulunan is None:
-            return await self._yanit(ctx, f"❌ **{ad}** adında bir liste bulunamadı.")
+            return await self._yanit(ctx, _t("❌ **{ad}** adında bir liste bulunamadı.", ad=ad))
         await self._calmalistesi_oynat_dahili(ctx, bulunan, karistir=karistir, basa=False)
 
     @calmalistesi.command(name="cikar", description="Listenden bir parçayı çıkarır")
@@ -1342,17 +1341,17 @@ class Muzik(commands.Cog):
     async def cl_cikar(self, ctx, ad: str, numara: str):
         liste_id = mdb.liste_bul(ctx.author.id, ad, genel_ara=False)
         if liste_id is None:
-            return await self._yanit(ctx, f"❌ **{ad}** adında sana ait bir liste yok.")
+            return await self._yanit(ctx, _t("❌ **{ad}** adında sana ait bir liste yok.", ad=ad))
         baslik = mdb.listeden_parca_cikar(liste_id, _tam_sayi(numara) or 0)
-        await self._yanit(ctx, f"🗑️ **{baslik}** listeden çıkarıldı." if baslik else "❌ Geçersiz numara.")
+        await self._yanit(ctx, _t("🗑️ **{baslik}** listeden çıkarıldı.", baslik=baslik) if baslik else _t("❌ Geçersiz numara."))
 
     @calmalistesi.command(name="sil", description="Kişisel listeni tamamen siler")
     @app_commands.describe(ad="Liste adı")
     async def cl_sil(self, ctx, *, ad: str):
         liste_id = mdb.liste_bul(ctx.author.id, ad, genel_ara=False)
         if liste_id is None or not mdb.liste_sil(ctx.author.id, liste_id):
-            return await self._yanit(ctx, f"❌ **{ad}** adında sana ait bir liste yok.")
-        await self._yanit(ctx, f"🗑️ **{ad}** listesi silindi.")
+            return await self._yanit(ctx, _t("❌ **{ad}** adında sana ait bir liste yok.", ad=ad))
+        await self._yanit(ctx, _t("🗑️ **{ad}** listesi silindi.", ad=ad))
 
     async def _liste_ac(self, interaction, current: str):
         c = (current or "").casefold()
@@ -1393,26 +1392,26 @@ class Muzik(commands.Cog):
 
     def _ayarlar_embedi(self, guild):
         a = mdb.muzik_ayar_al(guild.id)
-        embed = discord.Embed(color=MUZIK_RENGI, title="⚙️ Müzik Ayarları")
-        embed.add_field(name="🎚️ DJ rolü", value=f"<@&{a['dj_rol_id']}>" if a['dj_rol_id'] else "Kapalı (herkes kontrol eder)")
+        embed = discord.Embed(color=MUZIK_RENGI, title=_t("⚙️ Müzik Ayarları"))
+        embed.add_field(name=_t("🎚️ DJ rolü"), value=f"<@&{a['dj_rol_id']}>" if a['dj_rol_id'] else _t("Kapalı (herkes kontrol eder)"))
         oylama = bool(a['dj_rol_id'] or a['oylama_aktif'])
-        embed.add_field(name="🗳️ Oylamalı atla",
-                        value=f"{'Açık' if oylama else 'Kapalı'} · %{int(a['oylama_orani'] * 100)}"
-                              + (" (DJ rolü ayarlı → otomatik)" if a['dj_rol_id'] and not a['oylama_aktif'] else ""))
-        embed.add_field(name="🔊 Ses", value=f"Varsayılan %{a['varsayilan_ses']} · Son %{a['son_ses'] if a['son_ses'] is not None else '—'}")
-        embed.add_field(name="🌙 7/24 modu", value="Açık" if a['surekli_mod'] else "Kapalı")
-        embed.add_field(name="📻 Otomatik oynatma", value="Açık" if a['otomatik_oynatma'] else "Kapalı")
-        embed.add_field(name="⏱️ Boşta ayrılma", value=f"{a['bosta_zaman_asimi'] // 60} dk {a['bosta_zaman_asimi'] % 60} sn")
-        embed.add_field(name="📶 Normalizasyon", value="Açık" if a['normalizasyon'] else "Kapalı")
-        embed.add_field(name="📨 İstek kanalı", value=f"<#{a['istek_kanal_id']}>" if a['istek_kanal_id'] else "Yok")
-        embed.set_footer(text="Değiştir: /muzikayar dj · oylama · varsayilanses · surekli · otomatik · zamanasimi · istekkanali · normalizasyon")
+        embed.add_field(name=_t("🗳️ Oylamalı atla"),
+                        value=f"{_t("Açık") if oylama else _t("Kapalı")} · %{int(a['oylama_orani'] * 100)}"
+                              + (_t(" (DJ rolü ayarlı → otomatik)") if a['dj_rol_id'] and not a['oylama_aktif'] else ""))
+        embed.add_field(name=_t("🔊 Ses"), value=_t("Varsayılan %{a} · Son %{d3}", a=a['varsayilan_ses'], d3=a['son_ses'] if a['son_ses'] is not None else '—'))
+        embed.add_field(name=_t("🌙 7/24 modu"), value=_t("Açık") if a['surekli_mod'] else _t("Kapalı"))
+        embed.add_field(name=_t("📻 Otomatik oynatma"), value=_t("Açık") if a['otomatik_oynatma'] else _t("Kapalı"))
+        embed.add_field(name=_t("⏱️ Boşta ayrılma"), value=_t("{d0} dk {d2} sn", d0=a['bosta_zaman_asimi'] // 60, d2=a['bosta_zaman_asimi'] % 60))
+        embed.add_field(name=_t("📶 Normalizasyon"), value=_t("Açık") if a['normalizasyon'] else _t("Kapalı"))
+        embed.add_field(name=_t("📨 İstek kanalı"), value=f"<#{a['istek_kanal_id']}>" if a['istek_kanal_id'] else "Yok")
+        embed.set_footer(text=_t("Değiştir: /muzikayar dj · oylama · varsayilanses · surekli · otomatik · zamanasimi · istekkanali · normalizasyon"))
         return embed
 
     async def _ayar_kontrol(self, ctx, sadece_yonetici=False):
         if self._ayar_yetkisi(ctx.author, sadece_yonetici):
             return True
-        await self._yanit(ctx, "🚫 Bu ayar için sunucu yöneticisi (Yönetici / Sunucuyu Yönet)"
-                          + ("" if sadece_yonetici else " ya da DJ rolü") + " gerekli.")
+        await self._yanit(ctx, _t("🚫 Bu ayar için sunucu yöneticisi (Yönetici / Sunucuyu Yönet)")
+                          + ("" if sadece_yonetici else _t(" ya da DJ rolü")) + _t(" gerekli."))
         return False
 
     @commands.hybrid_group(name="muzikayar", aliases=["müzikayar", "muzikayarlar", "müzikayarlar"],
@@ -1426,8 +1425,7 @@ class Muzik(commands.Cog):
         if not await self._ayar_kontrol(ctx, sadece_yonetici=True):
             return
         mdb.muzik_ayar_guncelle(ctx.guild.id, dj_rol_id=rol.id if rol else None)
-        await self._yanit(ctx, f"🎚️ DJ rolü: {rol.mention}. Artık kontrol komutları DJ'lere/yöneticilere özel, "
-                               "diğerleri oyla atlar." if rol else "🎚️ DJ sistemi kapatıldı — herkes kontrol edebilir.")
+        await self._yanit(ctx, _t("🎚️ DJ rolü: {mention}. Artık kontrol komutları DJ'lere/yöneticilere özel, diğerleri oyla atlar.", mention=rol.mention) if rol else _t("🎚️ DJ sistemi kapatıldı — herkes kontrol edebilir."))
 
     @muzikayar.command(name="oylama", description="Oylamalı atla: aç / kapat ya da gereken oran (ör. 60)")
     @app_commands.describe(deger="aç, kapat ya da yüzde (10-100)")
@@ -1438,16 +1436,16 @@ class Muzik(commands.Cog):
         sayi = _tam_sayi(str(deger or "").rstrip("%")) if deger else None
         if sayi is not None:
             if not 10 <= sayi <= 100:
-                return await self._yanit(ctx, "❌ Oran %10-%100 arası olmalı.")
+                return await self._yanit(ctx, _t("❌ Oran %10-%100 arası olmalı."))
             mdb.muzik_ayar_guncelle(ctx.guild.id, oylama_orani=sayi / 100, oylama_aktif=1)
-            return await self._yanit(ctx, f"🗳️ Oylamalı atla açık — dinleyicilerin **%{sayi}**'i gerekli.")
+            return await self._yanit(ctx, _t("🗳️ Oylamalı atla açık — dinleyicilerin **%{sayi}**'i gerekli.", sayi=sayi))
         try:
             yeni = _ac_kapat(deger, bool(a['oylama_aktif']))
         except ValueError:
-            return await self._yanit(ctx, "❌ `aç`, `kapat` ya da bir yüzde yaz.")
+            return await self._yanit(ctx, _t("❌ `aç`, `kapat` ya da bir yüzde yaz."))
         mdb.muzik_ayar_guncelle(ctx.guild.id, oylama_aktif=int(yeni))
-        await self._yanit(ctx, f"🗳️ Oylamalı atla: **{'Açık' if yeni else 'Kapalı'}**"
-                          + (" (DJ rolü ayarlı olduğu için DJ olmayanlar yine oyla atlar)" if not yeni and a['dj_rol_id'] else ""))
+        await self._yanit(ctx, _t("🗳️ Oylamalı atla: **{d1}**", d1=_t("Açık") if yeni else _t("Kapalı"))
+                          + (_t(" (DJ rolü ayarlı olduğu için DJ olmayanlar yine oyla atlar)") if not yeni and a['dj_rol_id'] else ""))
 
     @muzikayar.command(name="varsayilanses", description="Yeni oturumların başlangıç sesi (0-150)")
     @app_commands.describe(seviye="0-150")
@@ -1456,9 +1454,9 @@ class Muzik(commands.Cog):
             return
         n = _tam_sayi(seviye.rstrip("%"))
         if n is None or not mdb.SES_MIN <= n <= mdb.SES_MAX:
-            return await self._yanit(ctx, "❌ 0-150 arası bir sayı gir.")
+            return await self._yanit(ctx, _t("❌ 0-150 arası bir sayı gir."))
         mdb.muzik_ayar_guncelle(ctx.guild.id, varsayilan_ses=n, son_ses=None)
-        await self._yanit(ctx, f"🔊 Varsayılan ses **%{n}** (hatırlanan son ses sıfırlandı).")
+        await self._yanit(ctx, _t("🔊 Varsayılan ses **%{n}** (hatırlanan son ses sıfırlandı).", n=n))
 
     @muzikayar.command(name="surekli", aliases=["247", "7/24"], description="7/24 modu: boşta/yalnızken kanaldan ayrılma")
     @app_commands.describe(durum="aç / kapat")
@@ -1468,9 +1466,9 @@ class Muzik(commands.Cog):
         try:
             yeni = _ac_kapat(durum, bool(mdb.muzik_ayar_al(ctx.guild.id)['surekli_mod']))
         except ValueError:
-            return await self._yanit(ctx, "❌ `aç` ya da `kapat` yaz.")
+            return await self._yanit(ctx, _t("❌ `aç` ya da `kapat` yaz."))
         mdb.muzik_ayar_guncelle(ctx.guild.id, surekli_mod=int(yeni))
-        await self._yanit(ctx, f"🌙 7/24 modu: **{'Açık' if yeni else 'Kapalı'}**")
+        await self._yanit(ctx, _t("🌙 7/24 modu: **{d1}**", d1=_t("Açık") if yeni else _t("Kapalı")))
 
     @muzikayar.command(name="otomatik", description="Otomatik oynatmanın varsayılan durumu")
     @app_commands.describe(durum="aç / kapat")
@@ -1480,13 +1478,13 @@ class Muzik(commands.Cog):
         try:
             yeni = _ac_kapat(durum, bool(mdb.muzik_ayar_al(ctx.guild.id)['otomatik_oynatma']))
         except ValueError:
-            return await self._yanit(ctx, "❌ `aç` ya da `kapat` yaz.")
+            return await self._yanit(ctx, _t("❌ `aç` ya da `kapat` yaz."))
         mdb.muzik_ayar_guncelle(ctx.guild.id, otomatik_oynatma=int(yeni))
         oyn = self.oynaticilar.get(ctx.guild.id)
         if oyn:
             oyn.otomatik = yeni
             await self.panel_guncelle(ctx.guild.id)
-        await self._yanit(ctx, f"📻 Otomatik oynatma (varsayılan): **{'Açık' if yeni else 'Kapalı'}**")
+        await self._yanit(ctx, _t("📻 Otomatik oynatma (varsayılan): **{d1}**", d1=_t("Açık") if yeni else _t("Kapalı")))
 
     @muzikayar.command(name="zamanasimi", description="Boşta ya da kanalda yalnız kalınca kaç dakika sonra ayrılsın")
     @app_commands.describe(sure="Dakika (ör. 3) ya da 90s, 1:30 (30 sn – 60 dk)")
@@ -1499,9 +1497,9 @@ class Muzik(commands.Cog):
         else:
             saniye, _ = sure_coz(metin.replace("dk", "m").replace("sn", "s"))
         if saniye is None or not 30 <= saniye <= 3600:
-            return await self._yanit(ctx, "❌ 30 saniye ile 60 dakika arası bir süre gir (ör. `3` = 3 dk, `90s`).")
+            return await self._yanit(ctx, _t("❌ 30 saniye ile 60 dakika arası bir süre gir (ör. `3` = 3 dk, `90s`)."))
         mdb.muzik_ayar_guncelle(ctx.guild.id, bosta_zaman_asimi=saniye)
-        await self._yanit(ctx, f"⏱️ Boşta/yalnız kalınca **{sure_metni(saniye)}** sonra ayrılacağım (7/24 kapalıyken).")
+        await self._yanit(ctx, _t("⏱️ Boşta/yalnız kalınca **{sure_metni}** sonra ayrılacağım (7/24 kapalıyken).", sure_metni=sure_metni(saniye)))
 
     @muzikayar.command(name="normalizasyon", description="Ses normalizasyonunun varsayılan durumu")
     @app_commands.describe(durum="aç / kapat")
@@ -1511,10 +1509,9 @@ class Muzik(commands.Cog):
         try:
             yeni = _ac_kapat(durum, bool(mdb.muzik_ayar_al(ctx.guild.id)['normalizasyon']))
         except ValueError:
-            return await self._yanit(ctx, "❌ `aç` ya da `kapat` yaz.")
+            return await self._yanit(ctx, _t("❌ `aç` ya da `kapat` yaz."))
         mdb.muzik_ayar_guncelle(ctx.guild.id, normalizasyon=int(yeni))
-        await self._yanit(ctx, f"📶 Normalizasyon (varsayılan): **{'Açık' if yeni else 'Kapalı'}** — yeni oturumlarda geçerli; "
-                               "şu anki oturum için `/filtre normalizasyon`.")
+        await self._yanit(ctx, _t("📶 Normalizasyon (varsayılan): **{d1}** — yeni oturumlarda geçerli; şu anki oturum için `/filtre normalizasyon`.", d1=_t("Açık") if yeni else _t("Kapalı")))
 
     @muzikayar.command(name="istekkanali", description="Şarkı istek kanalı: bu kanala yazılan her mesaj aranıp kuyruğa eklenir")
     @app_commands.describe(kanal="Kanal (boş: yeni kanal oluştur)", kapat="'kapat' yazarsan istek kanalı kapatılır")
@@ -1526,24 +1523,22 @@ class Muzik(commands.Cog):
             mdb.muzik_ayar_guncelle(ctx.guild.id, istek_kanal_id=None, panel_kanal_id=None, panel_mesaj_id=None)
             if eski is not None:
                 await _sessiz_sil(eski)
-            return await self._yanit(ctx, "📨 Şarkı istek kanalı kapatıldı.")
+            return await self._yanit(ctx, _t("📨 Şarkı istek kanalı kapatıldı."))
         if kanal is None:
             if not ctx.guild.me.guild_permissions.manage_channels:
-                return await self._yanit(ctx, "❌ Kanal oluşturma yetkim yok — mevcut bir kanal belirt: `/muzikayar istekkanali #kanal`")
+                return await self._yanit(ctx, _t("❌ Kanal oluşturma yetkim yok — mevcut bir kanal belirt: `/muzikayar istekkanali #kanal`"))
             kanal = await ctx.guild.create_text_channel(
                 "🎵・müzik-istek", topic="Şarkı adı ya da link yaz → kuyruğa eklenir. Mesajlar otomatik silinir.",
                 reason=f"MezarBot müzik istek kanalı ({ctx.author})")
         izin = kanal.permissions_for(ctx.guild.me)
         if not (izin.send_messages and izin.embed_links and izin.manage_messages and izin.read_message_history):
-            return await self._yanit(ctx, f"❌ {kanal.mention} kanalında **Mesaj Gönder, Bağlantı Yerleştir, Mesajları Yönet, "
-                                          "Mesaj Geçmişini Oku** yetkilerim olmalı.")
+            return await self._yanit(ctx, _t("❌ {mention} kanalında **Mesaj Gönder, Bağlantı Yerleştir, Mesajları Yönet, Mesaj Geçmişini Oku** yetkilerim olmalı.", mention=kanal.mention))
         eski = self.paneller.pop(ctx.guild.id, None)
         if eski is not None:
             await _sessiz_sil(eski)
         mdb.muzik_ayar_guncelle(ctx.guild.id, istek_kanal_id=kanal.id, panel_kanal_id=None, panel_mesaj_id=None)
         await self._panel_yaz_simdi(ctx.guild.id)
-        await self._yanit(ctx, f"📨 Şarkı istek kanalı: {kanal.mention} — oraya yazılan her mesaj aranıp kuyruğa eklenir, "
-                               "kontrol paneli de orada durur.")
+        await self._yanit(ctx, _t("📨 Şarkı istek kanalı: {mention} — oraya yazılan her mesaj aranıp kuyruğa eklenir, kontrol paneli de orada durur.", mention=kanal.mention))
 
     @commands.hybrid_command(name="oygec", aliases=["oyilegec"],
                              description="Oylamalı atlamayı açar/kapatır ya da gereken oranı ayarlar")
@@ -1563,16 +1558,16 @@ class Muzik(commands.Cog):
     async def ytdlpguncelle(self, ctx, secenek: str = None):
         """(Sahip) yt-dlp'yi venv'de günceller; yeni sürüm gelirse botu yeniden başlatır (systemd).
         !ytdlpguncelle bekle → çalan müzikler bitince yeniden başlat."""
-        mesaj = await ctx.send(f"⏳ yt-dlp güncelleniyor… (çalışan sürüm: `{guncelleyici.calisan_surum()}`)")
-        sonuc = await guncelleyici.guncelle("sahip komutu")
+        mesaj = await ctx.send(_t("⏳ yt-dlp güncelleniyor… (çalışan sürüm: `{calisan_surum}`)", calisan_surum=guncelleyici.calisan_surum()))
+        sonuc = await guncelleyici.guncelle(_t("sahip komutu"))
         mdb.bot_durum_yaz(guncelleyici.DURUM_ANAHTARI, time.time())
         if not sonuc['basarili']:
-            return await mesaj.edit(content=f"❌ Güncelleme başarısız:\n```{sonuc['cikti'][-1500:]}```")
+            return await mesaj.edit(content=_t("❌ Güncelleme başarısız:\n```{sonuc}```", sonuc=sonuc['cikti'][-1500:]))
         if not sonuc['degisti']:
-            return await mesaj.edit(content=f"✅ yt-dlp zaten güncel: `{sonuc['yeni']}`")
+            return await mesaj.edit(content=_t("✅ yt-dlp zaten güncel: `{sonuc}`", sonuc=sonuc['yeni']))
         bekle = (secenek or "").casefold() in ("bekle", "sonra", "wait")
-        await mesaj.edit(content=f"✅ yt-dlp `{sonuc['eski']}` → `{sonuc['yeni']}`. "
-                                 + ("Çalan müzikler bitince yeniden başlatacağım." if bekle else "Yeniden başlatılıyor… 🔄"))
+        await mesaj.edit(content=_t("✅ yt-dlp `{sonuc}` → `{sonuc2}`. ", sonuc=sonuc['eski'], sonuc2=sonuc['yeni'])
+                                 + (_t("Çalan müzikler bitince yeniden başlatacağım.") if bekle else _t("Yeniden başlatılıyor… 🔄")))
         self._arka_gorev(guncelleyici.yeniden_baslat(self.bot, self, aninda=not bekle))
 
     @tasks.loop(hours=12)
@@ -1580,7 +1575,7 @@ class Muzik(commands.Cog):
         son = float(mdb.bot_durum_al(guncelleyici.DURUM_ANAHTARI, 0) or 0)
         if time.time() - son < guncelleyici.KONTROL_ARALIGI:
             return
-        sonuc = await guncelleyici.guncelle("haftalık kontrol")
+        sonuc = await guncelleyici.guncelle(_t("haftalık kontrol"))
         mdb.bot_durum_yaz(guncelleyici.DURUM_ANAHTARI, time.time())
         if sonuc['degisti']:
             self._arka_gorev(guncelleyici.yeniden_baslat(self.bot, self, aninda=False))
@@ -1609,6 +1604,7 @@ class Muzik(commands.Cog):
     async def bakim_dongusu(self):
         simdi = time.monotonic()
         for gid, oyn in list(self.oynaticilar.items()):
+            dil_ayarla(gid)
             guild = self.bot.get_guild(gid)
             if guild is None:
                 await self._cleanup_guild(gid)
@@ -1626,11 +1622,11 @@ class Muzik(commands.Cog):
                 if oyn.yalniz_baslangic is None:
                     await self._kanal_durumu(guild)
                 elif not surekli and simdi - oyn.yalniz_baslangic > zaman_asimi:
-                    await self._cleanup_guild(gid, sebep="👋 Kanalda kimse kalmadı, ayrıldım. Tekrar görüşmek üzere!")
+                    await self._cleanup_guild(gid, sebep=_t("👋 Kanalda kimse kalmadı, ayrıldım. Tekrar görüşmek üzere!"))
                 continue
             if oyn.simdiki is None and not oyn.caliyor_mu() and not oyn.mesgul_mu() and not surekli \
                     and simdi - oyn.son_aktivite > zaman_asimi:
-                await self._cleanup_guild(gid, sebep="💤 Bir süredir boştayım, kanaldan ayrıldım.")
+                await self._cleanup_guild(gid, sebep=_t("💤 Bir süredir boştayım, kanaldan ayrıldım."))
 
     @bakim_dongusu.before_loop
     async def _bakim_once(self):
@@ -1698,11 +1694,11 @@ class Muzik(commands.Cog):
         oyn.nesil += 1   # ölü akışın bitiş callback'i sıradakine geçirmesin
         simdi = time.monotonic()
         if simdi - self._yeniden_baglanma_son.get(gid, 0) < YENIDEN_BAGLANMA_ARALIGI:
-            return await self._cleanup_guild(gid, sebep="🔌 Ses bağlantısı koptu.")
+            return await self._cleanup_guild(gid, sebep=_t("🔌 Ses bağlantısı koptu."))
         try:
             async for kayit in guild.audit_logs(limit=5, action=discord.AuditLogAction.member_disconnect):
                 if (discord.utils.utcnow() - kayit.created_at).total_seconds() < 20:
-                    return await self._cleanup_guild(gid, sebep="👋 Ses kanalından çıkarıldım.")
+                    return await self._cleanup_guild(gid, sebep=_t("👋 Ses kanalından çıkarıldım."))
         except (discord.Forbidden, discord.HTTPException):
             pass   # denetim kaydı yetkisi yok → ağ kopması varsay
         self._yeniden_baglanma_son[gid] = simdi
@@ -1716,11 +1712,11 @@ class Muzik(commands.Cog):
             await kanal.connect(timeout=20, reconnect=True, self_deaf=True)
         except (asyncio.TimeoutError, discord.ClientException, discord.HTTPException, RuntimeError) as e:
             logger.warning(f"[{gid}] Yeniden bağlanılamadı: {e}")
-            return await self._cleanup_guild(gid, sebep="🔌 Ses bağlantısı koptu ve yeniden bağlanamadım.")
+            return await self._cleanup_guild(gid, sebep=_t("🔌 Ses bağlantısı koptu ve yeniden bağlanamadım."))
         logger.info(f"[{gid}] Ses bağlantısı yenilendi, {konum:.0f}. saniyeden devam ediliyor.")
         if not await oyn.yeniden_baslat(konum):
             await oyn.sonrakine_gec(biten=oyn.simdiki)
-        await self.bildir(gid, "🔌 Ses bağlantısı koptu — yeniden bağlandım, kaldığı yerden devam ediyorum.")
+        await self.bildir(gid, _t("🔌 Ses bağlantısı koptu — yeniden bağlandım, kaldığı yerden devam ediyorum."))
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -1744,7 +1740,7 @@ class Muzik(commands.Cog):
         simdi = time.monotonic()
         if simdi - self._istek_son.get(anahtar, 0) < ISTEK_BEKLEME:
             try:
-                await message.channel.send(f"⏳ {message.author.mention} biraz yavaş — {ISTEK_BEKLEME:.0f} sn bekle.",
+                await message.channel.send(_t("⏳ {mention} biraz yavaş — {ISTEK_BEKLEME:.0f} sn bekle.", mention=message.author.mention, ISTEK_BEKLEME=ISTEK_BEKLEME),
                                            delete_after=5)
             except discord.HTTPException:
                 pass

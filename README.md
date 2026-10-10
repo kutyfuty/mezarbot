@@ -15,7 +15,7 @@
 
 **English** · [Türkçe](#-türkçe)
 
-[Features](#-features) · [Screenshots](#-screenshots) · [Setup](#-setup) · [Commands](KOMUTLAR.md) · [How the music works](#-how-the-music-works)
+[Features](#-features) · [Screenshots](#-screenshots) · [Setup](#-setup) · [Commands](COMMANDS.md) · [How the music works](#-how-the-music-works)
 
 </div>
 
@@ -73,7 +73,7 @@ with 🇬🇧 / 🇹🇷 to translate any message.
 </tr>
 </table>
 
-Every feature works per server, and each server picks its own language (Turkish or English). Optional features
+Every feature works per server, and each server picks its own language: `/dil en` switches every reply, panel and button to English. Optional features
 whose API key is missing simply turn off instead of crashing the bot.
 
 ## 📸 Screenshots
@@ -81,22 +81,23 @@ whose API key is missing simply turn off instead of crashing the bot.
 <div align="center">
 <table>
 <tr>
-<td align="center"><img src="docs/ekran/muzik-paneli.png" alt="Music control panel"><br><sub><b>Music panel</b></sub></td>
-<td align="center"><img src="docs/ekran/ozel-oda.png" alt="Private voice room panel"><br><sub><b>Private room panel</b></sub></td>
+<td align="center"><img src="docs/ekran/muzik-paneli-en.png" alt="Music control panel"><br><sub><b>Music panel</b></sub></td>
+<td align="center"><img src="docs/ekran/ozel-oda-en.png" alt="Private voice room panel"><br><sub><b>Private room panel</b></sub></td>
 </tr>
 <tr>
 <td align="center"><img src="docs/ekran/yardim-en.png" alt="Help menu"><br><sub><b>Help menu</b></sub></td>
 <td align="center"><img src="docs/ekran/ayarlar-en.png" alt="Server settings"><br><sub><b>Server settings</b></sub></td>
 </tr>
 <tr>
-<td align="center"><img src="docs/ekran/kuyruk.png" alt="Queue"><br><sub><b>Queue</b></sub></td>
-<td align="center"><img src="docs/ekran/sesstat.png" alt="Voice leaderboard"><br><sub><b>Voice leaderboard</b></sub></td>
+<td align="center"><img src="docs/ekran/kuyruk-en.png" alt="Queue"><br><sub><b>Queue</b></sub></td>
+<td align="center"><img src="docs/ekran/sesstat-en.png" alt="Voice leaderboard"><br><sub><b>Voice leaderboard</b></sub></td>
 </tr>
 </table>
 </div>
 
-<sub>Rendered from the bot's real embed and button output with sample users (<code>docs/ekran/</code>). The help menu and
-settings follow the server language; the music and room panels are Turkish for now.</sub>
+<sub>Rendered from the bot's real embed and button output with sample users (<code>docs/ekran/</code>). Everything the bot
+says follows the server language set with <code>/dil en</code>; slash command descriptions also appear in English for anyone
+using Discord in English.</sub>
 
 ## 🚀 Setup
 
@@ -170,13 +171,14 @@ without re-encoding, and the next song is resolved while the current one plays.
 ```bash
 venv/bin/python tests/smoke_test.py            # database, migrations, multi-server behavior
 venv/bin/python tests/ozel_oda_test.py         # private voice rooms
+venv/bin/python tests/dil_test.py              # every reply has an English translation
 venv/bin/python tests/muzik_test.py --agsiz    # music, offline (drop the flag to test real streams)
 ```
 Tests never connect to Discord or touch your real database, and they run on every push.
 
 ## 📝 Notes
 
-- The code and bot messages are in Turkish. Architecture and rules are in [AGENTS.md](AGENTS.md).
+- The code is written in Turkish; bot replies are translated through `dil.py` + `dil_en.py` (a test fails if a translation is missing). Architecture and rules are in [AGENTS.md](AGENTS.md).
 - Modules in `cogs_devre_disi/` (economy, confessions, word game, …) are not loaded by default.
 - On a VPS, YouTube often asks for bot verification. A `data/cookies.txt` (Netscape format) helps, and the SoundCloud
   fallback covers the rest.
@@ -252,7 +254,7 @@ tepkisi koyarak çeviri.
 </tr>
 </table>
 
-Her özellik sunucu bazında çalışır ve her sunucu kendi dilini seçer (Türkçe ya da İngilizce). API anahtarı olmayan
+Her özellik sunucu bazında çalışır ve her sunucu kendi dilini seçer: `/dil en` ile tüm yanıtlar, paneller ve butonlar İngilizceye geçer. API anahtarı olmayan
 özellikler botu çökertmek yerine kapanır.
 
 ### 📸 Ekran görüntüleri
@@ -260,16 +262,16 @@ Her özellik sunucu bazında çalışır ve her sunucu kendi dilini seçer (Tür
 <div align="center">
 <table>
 <tr>
-<td align="center"><img src="docs/ekran/muzik-paneli.png" alt="Müzik paneli"><br><sub><b>Müzik paneli</b></sub></td>
-<td align="center"><img src="docs/ekran/ozel-oda.png" alt="Özel oda paneli"><br><sub><b>Özel oda paneli</b></sub></td>
+<td align="center"><img src="docs/ekran/muzik-paneli-tr.png" alt="Müzik paneli"><br><sub><b>Müzik paneli</b></sub></td>
+<td align="center"><img src="docs/ekran/ozel-oda-tr.png" alt="Özel oda paneli"><br><sub><b>Özel oda paneli</b></sub></td>
 </tr>
 <tr>
 <td align="center"><img src="docs/ekran/yardim-tr.png" alt="Yardım menüsü"><br><sub><b>Yardım menüsü</b></sub></td>
 <td align="center"><img src="docs/ekran/ayarlar-tr.png" alt="Sunucu ayarları"><br><sub><b>Sunucu ayarları</b></sub></td>
 </tr>
 <tr>
-<td align="center"><img src="docs/ekran/kuyruk.png" alt="Kuyruk"><br><sub><b>Kuyruk</b></sub></td>
-<td align="center"><img src="docs/ekran/sesstat.png" alt="Ses sıralaması"><br><sub><b>Ses sıralaması</b></sub></td>
+<td align="center"><img src="docs/ekran/kuyruk-tr.png" alt="Kuyruk"><br><sub><b>Kuyruk</b></sub></td>
+<td align="center"><img src="docs/ekran/sesstat-tr.png" alt="Ses sıralaması"><br><sub><b>Ses sıralaması</b></sub></td>
 </tr>
 </table>
 </div>
@@ -332,13 +334,14 @@ Linux servisi için: [`deploy/mezarbot.service.example`](deploy/mezarbot.service
 ```bash
 venv/bin/python tests/smoke_test.py            # veritabanı, migrasyonlar, çok sunuculu davranış
 venv/bin/python tests/ozel_oda_test.py         # özel ses odaları
+venv/bin/python tests/dil_test.py              # her yanıtın İngilizcesi var
 venv/bin/python tests/muzik_test.py --agsiz    # müzik, ağsız (parametresiz: gerçek akış testleri de)
 ```
 Testler Discord'a bağlanmaz, gerçek veritabanına dokunmaz ve her push'ta çalışır.
 
 ### 📝 Notlar
 
-- Kod ve bot mesajları Türkçedir. Mimari ve kurallar: [AGENTS.md](AGENTS.md).
+- Kod Türkçe yazılmıştır; bot yanıtları `dil.py` + `dil_en.py` ile çevrilir (eksik çeviri olursa test hata verir). Mimari ve kurallar: [AGENTS.md](AGENTS.md).
 - `cogs_devre_disi/` içindeki modüller (ekonomi, itiraf, kelime oyunu …) varsayılan olarak yüklenmez.
 - VPS'te YouTube sık sık bot doğrulaması ister. `data/cookies.txt` (Netscape biçimi) eklemek işe yarar; kalanını
   SoundCloud yedeği karşılar.
