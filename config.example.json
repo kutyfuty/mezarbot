@@ -1,0 +1,23 @@
+{
+    "_NOT": "Gizli anahtarlar (DISCORD_TOKEN, GROQ_API_KEY vb.) .env dosyasinda durur, buraya YAZMA. Sunucuya ozel ayarlar (log, hosgeldin kanali vb.) veritabaninda tutulur, her sunucunun yoneticisi komutla ayarlar (/ayarlar).",
+    "prefix": "!",
+    "_sahip_id": "Bot sahibinin Discord kullanici ID'si (sahip komutlari, dokunulmazlik). Discord'da Gelistirici Modu acip profiline sag tik → ID'yi Kopyala.",
+    "sahip_id": "",
+    "_guvenilir_idler": "Sahibe ek olarak dokunulmaz (ceza verilemez) ve /yaz komutunu yetkisiz kullanabilen kullanici ID'leri.",
+    "guvenilir_idler": [],
+    "_durum_mesajlari": "Botun durum dongusu: [metin, playing|watching|listening|competing]. Bossa varsayilan liste.",
+    "durum_mesajlari": [],
+    "_ek_coglar": "Varsayilan disinda yuklenecek cog'lar, or. [\"cogs_devre_disi.itiraf\"].",
+    "ek_coglar": [],
+    "_onay_sistemi": "Opsiyonel uye onay kapisi (cogs/sunucu_onay.py), tek sunucu icin. sunucu_id bossa kapali; kurucu_id bossa sahip_id; genel_davet_kodu ile gelenler onay bekler.",
+    "onay_sistemi": {
+        "sunucu_id": "",
+        "kurucu_id": "",
+        "genel_davet_kodu": ""
+    },
+    "_eski_ekonomi_sunucu_id": "Sadece eski (global ekonomili) surumden gecenler icin. Yeni kurulumda bos birak.",
+    "eski_ekonomi_sunucu_id": "",
+    "_js_yollari": "yt-dlp'nin YouTube JS cozumu icin (Node>=22 veya Deno>=2.3). Bossa PATH'te aranir.",
+    "node_yolu": "",
+    "deno_yolu": ""
+}

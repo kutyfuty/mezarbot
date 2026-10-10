@@ -1,0 +1,39 @@
+# Discord bot - secret/sensitive
+.env
+.env.*
+!.env.example
+*.lock
+!requirements.lock
+bot.lock
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Spotipy token cache (içinde erişim token'ı olur)
+.cache
+.cache-*
+
+# Python sanal ortam
+venv/
+.venv/
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+
+# Logs (dönen log dosyaları dahil: mezarbot.log.1 ...)
+*.log
+*.log.*
+
+# yt-dlp önbelleği / geçici ses dosyaları
+data/.ytdl_cache/
+data/tmp/
+*.mp3
+
+# Backup (migrasyon öncesi otomatik DB yedekleri dahil: mezarbot.db.bak-ekonomi-<zaman>)
+*.bak_*
+*.bak-*
+bin/

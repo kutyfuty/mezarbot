@@ -1,0 +1,35 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - name: Bağımlılıklar
+        run: pip install -r requirements.txt
+      - name: Derleme
+        run: python -m py_compile $(git ls-files '*.py')
+      - name: Testler (ağsız)
+        run: |
+          cp config.example.json config.json
+          python tests/smoke_test.py
+          python tests/ozel_oda_test.py
+          python tests/muzik_test.py --agsiz
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: İmajı derle
+        run: docker build -t mezarbot .
+      - name: İmaj içeriği
+        run: docker run --rm --entrypoint sh mezarbot -c "python -c 'import discord, davey, yt_dlp, groq; print(discord.__version__)' && ffmpeg -version | head -1 && deno --version | head -1"

@@ -1,0 +1,10 @@
+services:
+  mezarbot:
+    build: .
+    container_name: mezarbot
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - ./data:/app/data          # veritabanı, yt-dlp önbelleği, (opsiyonel) cookies.txt
+    stop_grace_period: 15s

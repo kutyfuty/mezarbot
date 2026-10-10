@@ -1,0 +1,13 @@
+.git
+.env
+venv
+.venv
+data
+bin
+*.db
+*.db-*
+*.log
+*.log.*
+bot.lock
+__pycache__
+tests

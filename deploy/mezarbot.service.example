@@ -1,0 +1,65 @@
+# MezarBot — örnek systemd birimi (bot /opt/mezarbot altında, "mezarbot" kullanıcısıyla)
+#
+# Kurulum (root gerekir):
+#   sudo cp /opt/mezarbot/deploy/mezarbot.service.example /etc/systemd/system/mezarbot.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now mezarbot.service
+#   journalctl -u mezarbot -f
+#
+# Tüm yazılabilir durum bot dizininde: mezarbot.db(+wal/shm), mezarbot.log*, bot.lock,
+# data/.ytdl_cache (yt-dlp önbelleği + EJS çözücü betiği), data/tmp (TTS mp3).
+# ffmpeg sesi pipe üzerinden aktarır, geçici dosya yazmaz.
+
+[Unit]
+Description=MezarBot Discord botu (çok sunuculu)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=mezarbot
+Group=mezarbot
+WorkingDirectory=/opt/mezarbot
+ExecStart=/opt/mezarbot/venv/bin/python main.py
+Environment=PYTHONUNBUFFERED=1
+Environment=PATH=/usr/local/bin:/usr/bin
+# ProtectHome=yes altında /home erişilemez: HOME/önbellek/geçici dizinler bot dizinine yönlendirilir
+Environment=HOME=/opt/mezarbot/data
+Environment=XDG_CACHE_HOME=/opt/mezarbot/data/.cache
+Environment=TMPDIR=/opt/mezarbot/data/tmp
+
+Restart=on-failure
+RestartSec=10
+# 3 = başka bir örnek zaten çalışıyor (flock), 78 = yapılandırma hatası (ör. DISCORD_TOKEN boş):
+# bu durumlarda yeniden denemek anlamsız.
+# 75 = müzik modülü yt-dlp'yi venv'de güncelledi → yeni sürümle yeniden başlatılması İSTENİR (buraya ekleme!).
+RestartPreventExitStatus=3 78
+# SIGTERM → bot düzgün kapanır (cog'lar kaldırılır, XP buffer DB'ye yazılır)
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# ── Sıkılaştırma ──
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/opt/mezarbot
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+# AF_NETLINK: glibc getaddrinfo(AI_ADDRCONFIG) için gerekli (aiohttp DNS çözümlemesi)
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+SystemCallArchitectures=native
+UMask=0077
+# NOT: MemoryDenyWriteExecute=yes KULLANMA — Node.js (yt-dlp JS çözücü) JIT için W+X bellek ister.
+
+[Install]
+WantedBy=multi-user.target
