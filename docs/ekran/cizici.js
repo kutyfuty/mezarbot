@@ -108,5 +108,11 @@ function sayfa(s) {
     await (await sekme.$('#m')).screenshot({ path: cikti });
     console.log('✓', path.relative(process.cwd(), cikti));
   }
+  // Banner (README başlığı)
+  const banner = await tarayici.newPage({ deviceScaleFactor: 2, viewport: { width: 1280, height: 360 } });
+  await banner.setContent(fs.readFileSync(path.join(DIZIN, 'banner.html'), 'utf8'), { waitUntil: 'load' });
+  await banner.evaluate(() => document.fonts.ready);
+  await banner.screenshot({ path: path.join(DIZIN, 'banner.png') });
+  console.log('✓', path.relative(process.cwd(), path.join(DIZIN, 'banner.png')));
   await tarayici.close();
 })().catch((e) => { console.error(e); process.exit(1); });

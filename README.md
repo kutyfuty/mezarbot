@@ -1,233 +1,353 @@
-# 🪦 MezarBot
+<div align="center">
 
-[![test](https://github.com/kutyfuty/mezarbot/actions/workflows/test.yml/badge.svg)](https://github.com/kutyfuty/mezarbot/actions/workflows/test.yml) ![Python](https://img.shields.io/badge/python-3.11%2B-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+<img src="docs/ekran/banner.png" alt="MezarBot" width="100%">
 
-**English** · [Türkçe](#türkçe)
+<br>
 
-A self-hosted, multi-server Discord bot with stutter-free music, private voice rooms, moderation,
-voice activity leaderboards, AI chat and image generation, text-to-speech and instant translation.
-Each server can pick its language (Turkish / English).
+[![Tests](https://img.shields.io/github/actions/workflow/status/kutyfuty/mezarbot/test.yml?branch=main&style=for-the-badge&label=tests&logo=githubactions&logoColor=white)](https://github.com/kutyfuty/mezarbot/actions/workflows/test.yml)
+[![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](#-setup)
+[![discord.py](https://img.shields.io/badge/discord.py-2.7-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://github.com/Rapptz/discord.py)
+[![Docker](https://img.shields.io/badge/docker-ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](#-setup)
+[![License](https://img.shields.io/badge/license-MIT-57F287?style=for-the-badge)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/kutyfuty/mezarbot?style=for-the-badge&logo=github&color=FEE75C)](https://github.com/kutyfuty/mezarbot/stargazers)
 
-<p align="center">
-  <img src="docs/ekran/muzik-paneli.png" width="49%" alt="Music control panel">
-  <img src="docs/ekran/ozel-oda.png" width="49%" alt="Private voice room panel">
-</p>
-<p align="center">
-  <img src="docs/ekran/yardim-en.png" width="49%" alt="Help menu (English)">
-  <img src="docs/ekran/ayarlar-en.png" width="49%" alt="Server settings (English)">
-</p>
-<p align="center">
-  <img src="docs/ekran/kuyruk.png" width="49%" alt="Queue">
-  <img src="docs/ekran/sesstat.png" width="49%" alt="Voice activity leaderboard">
-</p>
+**A self-hosted, multi-server Discord bot: stutter-free music, private voice rooms, moderation, voice stats and AI.**
 
-> Screenshots are rendered from the bot's real embed and button output (`docs/ekran/`), with sample users.
-> The help menu and settings follow the server language; music and voice room panels are Turkish for now.
+**English** · [Türkçe](#-türkçe)
 
-## Features
+[Features](#-features) · [Screenshots](#-screenshots) · [Setup](#-setup) · [Commands](KOMUTLAR.md) · [How the music works](#-how-the-music-works)
 
-**🎵 Music**
-- YouTube, YouTube Music, Spotify (tracks, albums, playlists), SoundCloud and direct audio links, or just search
-- **SoundCloud fallback:** if YouTube refuses a song (bot check, age/region lock, removed video), the bot finds the
-  same song on SoundCloud and skips 30-second previews and wrong matches (covers, remixes, other songs)
-- Persistent control panel with buttons, queue, loop, shuffle, seek, previous track, vote skip, DJ role
-- Autoplay (similar songs when the queue ends), volume normalization, 24/7 mode, song request channel
-- Personal and shared playlists, play history, synced lyrics (LRCLIB)
-- **No stutter:** yt-dlp and Spotify resolving run in separate processes, Opus sources are passed through without
-  re-encoding, and Discord's end-to-end voice encryption (DAVE) is supported
+</div>
 
-**🔊 Private voice rooms**: everyone who uses the "create room" button gets their own room. They can lock, hide,
-invite, kick, ban, set a limit, transfer or claim it from a persistent button panel. Turn it on per server with
-`/ozelodaaktif`.
+---
 
-**🛡️ Moderation**: auto-mod against repeated messages (flood), warnings, timeout / kick / ban, message and moderation
-logs, welcome and goodbye messages, auto-role, AFK, random team builder.
+## ✨ Features
 
-**📊 Voice stats**: weekly, monthly and all-time voice channel leaderboards.
+<table>
+<tr>
+<td width="50%" valign="top">
 
-**🤖 AI**: chat by mentioning the bot (Groq free tier, selectable personality), image generation with `/draw`
-(Replicate Flux).
+### 🎵 Music that doesn't stutter
+YouTube, YouTube Music, Spotify, SoundCloud and direct links. Persistent button panel, queue, loop, seek,
+vote skip, DJ role, autoplay, 24/7 mode, request channel, playlists and synced lyrics.
 
-**🗣️ Text-to-speech**: `/konus` reads text aloud in a voice channel (Microsoft Edge TTS, free).
+</td>
+<td width="50%" valign="top">
 
-**🌐 Translation**: react to a message with 🇬🇧 or 🇹🇷 to get a translation, or use `/cevir`.
+### 🛟 SoundCloud fallback
+YouTube blocked a song (bot check, age or region lock, removed video)? The bot finds the same song on SoundCloud,
+skipping 30-second previews and wrong matches like covers and remixes.
 
-Full command list (Turkish): **[KOMUTLAR.md](KOMUTLAR.md)**
+</td>
+</tr>
+<tr>
+<td valign="top">
 
-## Setup
+### 🔊 Private voice rooms
+One click creates your own room. Lock, hide, invite, kick, ban, set a limit, rename, transfer or claim it from a
+button panel. Empty rooms clean themselves up.
 
-### 1. Discord application
-1. [Discord Developer Portal](https://discord.com/developers/applications) → **New Application** → **Bot** → copy the token.
-2. Under **Privileged Gateway Intents**, turn on **Server Members** and **Message Content**.
-3. **OAuth2 → URL Generator**: scopes `bot` + `applications.commands`, permission **Administrator** (or the ones you
-   need), then invite the bot with the generated link.
+</td>
+<td valign="top">
 
-### 2. Configuration
+### 🛡️ Moderation
+Flood auto-mod, warnings, timeout / kick / ban, message and moderation logs, welcome and goodbye messages,
+auto-role, AFK and a random team builder.
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### 📊 Voice stats
+Weekly, monthly and all-time leaderboards of who spends the most time in voice channels.
+
+</td>
+<td valign="top">
+
+### 🤖 AI, TTS and translation
+Mention the bot to chat (Groq, free tier), generate images with `/draw`, read text aloud with `/konus`, and react
+with 🇬🇧 / 🇹🇷 to translate any message.
+
+</td>
+</tr>
+</table>
+
+Every feature works per server, and each server picks its own language (Turkish or English). Optional features
+whose API key is missing simply turn off instead of crashing the bot.
+
+## 📸 Screenshots
+
+<div align="center">
+<table>
+<tr>
+<td align="center"><img src="docs/ekran/muzik-paneli.png" alt="Music control panel"><br><sub><b>Music panel</b></sub></td>
+<td align="center"><img src="docs/ekran/ozel-oda.png" alt="Private voice room panel"><br><sub><b>Private room panel</b></sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/ekran/yardim-en.png" alt="Help menu"><br><sub><b>Help menu</b></sub></td>
+<td align="center"><img src="docs/ekran/ayarlar-en.png" alt="Server settings"><br><sub><b>Server settings</b></sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/ekran/kuyruk.png" alt="Queue"><br><sub><b>Queue</b></sub></td>
+<td align="center"><img src="docs/ekran/sesstat.png" alt="Voice leaderboard"><br><sub><b>Voice leaderboard</b></sub></td>
+</tr>
+</table>
+</div>
+
+<sub>Rendered from the bot's real embed and button output with sample users (<code>docs/ekran/</code>). The help menu and
+settings follow the server language; the music and room panels are Turkish for now.</sub>
+
+## 🚀 Setup
+
+**1. Create the bot.** In the [Discord Developer Portal](https://discord.com/developers/applications): New Application →
+Bot → copy the token. Turn on the **Server Members** and **Message Content** intents. Invite it with OAuth2 → URL
+Generator (`bot` + `applications.commands`, Administrator or the permissions you need).
+
+**2. Configure.**
 ```bash
-git clone https://github.com/kutyfuty/mezarbot.git
-cd mezarbot
+git clone https://github.com/kutyfuty/mezarbot.git && cd mezarbot
 cp .env.example .env                 # DISCORD_TOKEN is required, the rest is optional
-cp config.example.json config.json   # set sahip_id to your own Discord user ID
+cp config.example.json config.json   # set sahip_id to your Discord user ID
 ```
 
-| `.env` variable | Required | Used for |
-|---|---|---|
-| `DISCORD_TOKEN` | ✅ | Bot token |
-| `GROQ_API_KEY` | – | AI chat and translation ([free](https://console.groq.com)) |
-| `REPLICATE_API_TOKEN` | – | `/ciz` / `/draw` image generation |
-| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | – | Spotify API (without it, the public embed page is used) |
+**3. Run.**
 
-A feature whose key is empty is simply turned off; the bot does not crash.
+<details open>
+<summary><b>🐳 Docker (recommended)</b></summary>
 
-### 3a. Docker (recommended)
 ```bash
 docker compose up -d --build
 docker compose logs -f
 ```
 The database and caches live in `./data`.
+</details>
 
-### 3b. Manual
-Requirements: **Python 3.11+** (tested on 3.14), **FFmpeg**, and **Deno ≥ 2.3** or **Node ≥ 22** for YouTube.
+<details>
+<summary><b>🐍 Without Docker</b></summary>
+
+Needs Python 3.11+ (tested on 3.14), FFmpeg, and Deno ≥ 2.3 or Node ≥ 22 (for YouTube).
 ```bash
 python3 -m venv venv
 venv/bin/pip install -r requirements.txt
 venv/bin/python main.py
 ```
-To run it as a Linux service, see [`deploy/mezarbot.service.example`](deploy/mezarbot.service.example).
+For a Linux service, see [`deploy/mezarbot.service.example`](deploy/mezarbot.service.example).
+</details>
 
-### First steps on your server
-- `/dil en` (or `!language en`) sets the bot language, `/settings` (or `/ayarlar`) shows logs, welcome, auto-role and more.
-- `/ozelodaaktif` sets up private voice rooms, `/muzikayar` sets the DJ role, request channel and 24/7 mode.
+<details>
+<summary><b>🔑 Environment variables</b></summary>
 
-## Tests
+| Variable | Required | Used for |
+|---|:---:|---|
+| `DISCORD_TOKEN` | ✅ | Bot token |
+| `GROQ_API_KEY` | | AI chat and translation ([free](https://console.groq.com)) |
+| `REPLICATE_API_TOKEN` | | `/draw` image generation |
+| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | | Spotify API (falls back to the public embed page) |
+</details>
+
+**4. On your server:** `/dil en` (or `!language en`) switches to English, `/settings` sets up logs, welcome and
+auto-role, `/ozelodaaktif` creates the private room system, and `/muzikayar` sets the DJ role, request channel and 24/7 mode.
+
+## 🎧 How the music works
+
+```mermaid
+flowchart LR
+    A["/oynat song or link"] --> B["Resolver"]
+    B --> C["Worker processes<br/>yt-dlp · Spotify"]
+    C -->|"YouTube refuses"| D["SoundCloud fallback<br/>no previews, no wrong songs"]
+    C --> E["Per-server player"]
+    D --> E
+    E --> F["FFmpeg<br/>Opus pass-through"]
+    F --> G["Discord voice<br/>DAVE encryption"]
+```
+
+Resolving runs in separate processes, so heavy yt-dlp work never blocks the audio thread. Opus sources go to Discord
+without re-encoding, and the next song is resolved while the current one plays.
+
+## 🧪 Tests
+
 ```bash
 venv/bin/python tests/smoke_test.py            # database, migrations, multi-server behavior
 venv/bin/python tests/ozel_oda_test.py         # private voice rooms
-venv/bin/python tests/muzik_test.py --agsiz    # music, offline (without the flag it also tests real streams)
+venv/bin/python tests/muzik_test.py --agsiz    # music, offline (drop the flag to test real streams)
 ```
-Tests never connect to Discord and never touch the real database. They run on every push via GitHub Actions.
+Tests never connect to Discord or touch your real database, and they run on every push.
 
-## Notes
-- The code, variable names and bot messages are in Turkish. Architecture and rules: [AGENTS.md](AGENTS.md).
+## 📝 Notes
+
+- The code and bot messages are in Turkish. Architecture and rules are in [AGENTS.md](AGENTS.md).
 - Modules in `cogs_devre_disi/` (economy, confessions, word game, …) are not loaded by default.
-- YouTube often asks datacenter IPs to prove they are not a bot. On a VPS, adding `data/cookies.txt` (browser cookies in
-  Netscape format) helps, and the SoundCloud fallback kicks in when it doesn't.
-- Music works through yt-dlp. You are responsible for following the terms of the platforms you use.
-- Screenshots are regenerated with `venv/bin/python docs/ekran/sahneler.py && node docs/ekran/cizici.js`.
+- On a VPS, YouTube often asks for bot verification. A `data/cookies.txt` (Netscape format) helps, and the SoundCloud
+  fallback covers the rest.
+- Music works through yt-dlp; follow the terms of the platforms you use.
+
+<div align="center">
+
+**If MezarBot is useful to you, a ⭐ helps a lot.**
+
+</div>
 
 ---
 
-## Türkçe
+<div align="center">
 
-[English](#-mezarbot) · **Türkçe**
+## 🇹🇷 Türkçe
 
-Kendi sunucunda çalıştırabileceğin, çok sunuculu bir Discord botu: takılmayan müzik, özel ses odaları, moderasyon,
-ses istatistikleri, yapay zekâ sohbeti ve çizimi, seslendirme ve anlık çeviri. Her sunucu kendi dilini seçebilir
-(Türkçe / İngilizce).
+**Kendi sunucunda çalışan, çok sunuculu Discord botu: takılmayan müzik, özel ses odaları, moderasyon, ses istatistikleri ve yapay zekâ.**
 
-<p align="center">
-  <img src="docs/ekran/muzik-paneli.png" width="49%" alt="Müzik kontrol paneli">
-  <img src="docs/ekran/ozel-oda.png" width="49%" alt="Özel ses odası paneli">
-</p>
-<p align="center">
-  <img src="docs/ekran/yardim-tr.png" width="49%" alt="Yardım menüsü">
-  <img src="docs/ekran/ayarlar-tr.png" width="49%" alt="Sunucu ayarları">
-</p>
-<p align="center">
-  <img src="docs/ekran/kuyruk.png" width="49%" alt="Kuyruk">
-  <img src="docs/ekran/sesstat.png" width="49%" alt="Ses sıralaması">
-</p>
+[English](#-features) · **Türkçe**
 
-> Görseller botun gerçek embed ve buton çıktısından, örnek kullanıcılarla üretildi (`docs/ekran/`).
+</div>
 
-### Özellikler
+### ✨ Özellikler
 
-**🎵 Müzik**
-- YouTube, YouTube Music, Spotify (şarkı / albüm / playlist), SoundCloud ve doğrudan ses linkleri; aramayla çalma
-- **YouTube çalamazsa SoundCloud yedeği:** bot doğrulaması, yaş/bölge kısıtı ya da kaldırılmış videoda aynı şarkıyı
-  SoundCloud'da bulur; 30 sn'lik önizlemeleri ve yanlış şarkıları (cover, remix, başka şarkı) eler
-- Kalıcı kontrol paneli (butonlar), kuyruk, döngü, karıştırma, ileri/geri sarma, önceki şarkı, oylamalı atlama, DJ rolü
-- Otomatik oynatma (kuyruk bitince benzer şarkılar), ses dengeleme, 7/24 modu, şarkı istek kanalı
-- Kişisel ve paylaşılan çalma listeleri, çalma geçmişi, şarkı sözleri (LRCLIB)
-- **Takılmayan ses:** yt-dlp ve Spotify çözümleme ayrı süreçlerde çalışır, Opus kaynaklar yeniden kodlanmadan aktarılır;
-  Discord'un uçtan uca ses şifrelemesi (DAVE) desteklenir
+<table>
+<tr>
+<td width="50%" valign="top">
 
-**🔊 Özel ses odaları**: "Oda oluştur" butonuna basan herkese kendi odası. Kilitle, gizle, davet et, at/yasakla,
-limit koy, devret, sahiplen; hepsi kalıcı butonlu panelden. Sunucu başına `/ozelodaaktif` ile açılır.
+#### 🎵 Takılmayan müzik
+YouTube, YouTube Music, Spotify, SoundCloud ve doğrudan linkler. Kalıcı butonlu panel, kuyruk, döngü, sarma,
+oylamalı atlama, DJ rolü, otomatik oynatma, 7/24 modu, istek kanalı, çalma listeleri ve senkron sözler.
 
-**🛡️ Moderasyon**: oto-mod (tekrarlanan mesaj / flood), uyarı sistemi, susturma/atma/yasaklama, mesaj ve moderasyon
-logları, hoş geldin / görüşürüz mesajları, otomatik rol, AFK, takım kurma.
+</td>
+<td width="50%" valign="top">
 
-**📊 Ses istatistikleri**: haftalık / aylık / tüm zamanlar ses süresi sıralaması.
+#### 🛟 SoundCloud yedeği
+YouTube bir şarkıyı çalmadı mı (bot doğrulaması, yaş/bölge kısıtı, kaldırılmış video)? Bot aynı şarkıyı SoundCloud'da
+bulur; 30 sn'lik önizlemeleri ve cover, remix gibi yanlış eşleşmeleri atlar.
 
-**🤖 Yapay zekâ**: botu etiketleyerek sohbet (Groq ücretsiz katman, kişilik seçimi), `/ciz` ile resim (Replicate Flux).
+</td>
+</tr>
+<tr>
+<td valign="top">
 
-**🗣️ Seslendirme**: `/konus` metni ses kanalında okur (Microsoft Edge TTS, ücretsiz).
+#### 🔊 Özel ses odaları
+Tek tıkla kendi odan. Butonlu panelden kilitle, gizle, davet et, at, yasakla, limit koy, adını değiştir, devret ya da
+sahiplen. Boş kalan odalar kendiliğinden silinir.
 
-**🌐 Çeviri**: mesaja 🇬🇧 / 🇹🇷 tepkisi koy, çevirisi gelsin; ya da `/cevir`.
+</td>
+<td valign="top">
 
-Tüm komutlar: **[KOMUTLAR.md](KOMUTLAR.md)**
+#### 🛡️ Moderasyon
+Flood oto-modu, uyarılar, susturma / atma / yasaklama, mesaj ve moderasyon logları, hoş geldin ve görüşürüz mesajları,
+otomatik rol, AFK ve rastgele takım kurma.
 
-### Kurulum
+</td>
+</tr>
+<tr>
+<td valign="top">
 
-**1. Discord uygulaması**
-1. [Discord Developer Portal](https://discord.com/developers/applications) → **New Application** → **Bot** → token'ı kopyala.
-2. **Privileged Gateway Intents** altında **Server Members** ve **Message Content** açık olmalı.
-3. **OAuth2 → URL Generator**: `bot` + `applications.commands` kapsamları, **Administrator** (ya da ihtiyaç duyulan
-   izinler) → oluşan linkle botu sunucuna ekle.
+#### 📊 Ses istatistikleri
+Ses kanallarında en çok vakit geçirenlerin haftalık, aylık ve tüm zamanlar sıralaması.
 
-**2. Ayarlar**
+</td>
+<td valign="top">
+
+#### 🤖 Yapay zekâ, seslendirme ve çeviri
+Botu etiketleyerek sohbet (Groq, ücretsiz), `/ciz` ile resim, `/konus` ile sesli okuma; herhangi bir mesaja 🇬🇧 / 🇹🇷
+tepkisi koyarak çeviri.
+
+</td>
+</tr>
+</table>
+
+Her özellik sunucu bazında çalışır ve her sunucu kendi dilini seçer (Türkçe ya da İngilizce). API anahtarı olmayan
+özellikler botu çökertmek yerine kapanır.
+
+### 📸 Ekran görüntüleri
+
+<div align="center">
+<table>
+<tr>
+<td align="center"><img src="docs/ekran/muzik-paneli.png" alt="Müzik paneli"><br><sub><b>Müzik paneli</b></sub></td>
+<td align="center"><img src="docs/ekran/ozel-oda.png" alt="Özel oda paneli"><br><sub><b>Özel oda paneli</b></sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/ekran/yardim-tr.png" alt="Yardım menüsü"><br><sub><b>Yardım menüsü</b></sub></td>
+<td align="center"><img src="docs/ekran/ayarlar-tr.png" alt="Sunucu ayarları"><br><sub><b>Sunucu ayarları</b></sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/ekran/kuyruk.png" alt="Kuyruk"><br><sub><b>Kuyruk</b></sub></td>
+<td align="center"><img src="docs/ekran/sesstat.png" alt="Ses sıralaması"><br><sub><b>Ses sıralaması</b></sub></td>
+</tr>
+</table>
+</div>
+
+<sub>Görseller botun gerçek embed ve buton çıktısından, örnek kullanıcılarla üretildi (<code>docs/ekran/</code>).</sub>
+
+### 🚀 Kurulum
+
+**1. Botu oluştur.** [Discord Developer Portal](https://discord.com/developers/applications) → New Application → Bot →
+token'ı kopyala. **Server Members** ve **Message Content** intent'lerini aç. OAuth2 → URL Generator ile davet et
+(`bot` + `applications.commands`, Administrator ya da gereken izinler).
+
+**2. Ayarla.**
 ```bash
-git clone https://github.com/kutyfuty/mezarbot.git
-cd mezarbot
+git clone https://github.com/kutyfuty/mezarbot.git && cd mezarbot
 cp .env.example .env                 # DISCORD_TOKEN zorunlu, diğerleri opsiyonel
 cp config.example.json config.json   # sahip_id = kendi Discord kullanıcı ID'n
 ```
 
-| `.env` değişkeni | Gerekli mi | Ne için |
-|---|---|---|
-| `DISCORD_TOKEN` | ✅ | Bot token'ı |
-| `GROQ_API_KEY` | – | Yapay zekâ sohbeti ve çeviri ([ücretsiz](https://console.groq.com)) |
-| `REPLICATE_API_TOKEN` | – | `/ciz` resim çizimi |
-| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | – | Spotify API (boşsa herkese açık embed sayfası kullanılır) |
+**3. Çalıştır.**
 
-Anahtarı boş olan özellik kapanır; bot çökmez.
+<details open>
+<summary><b>🐳 Docker ile (önerilen)</b></summary>
 
-**3a. Docker ile (önerilen)**
 ```bash
 docker compose up -d --build
 docker compose logs -f
 ```
 Veritabanı ve önbellek `./data` klasöründe kalır.
+</details>
 
-**3b. Elle**
-Gerekenler: **Python 3.11+** (3.14 ile test edildi), **FFmpeg**, YouTube için **Deno ≥ 2.3** ya da **Node ≥ 22**.
+<details>
+<summary><b>🐍 Docker olmadan</b></summary>
+
+Python 3.11+ (3.14 ile test edildi), FFmpeg ve YouTube için Deno ≥ 2.3 ya da Node ≥ 22 gerekir.
 ```bash
 python3 -m venv venv
 venv/bin/pip install -r requirements.txt
 venv/bin/python main.py
 ```
-Linux'ta servis olarak çalıştırmak için örnek: [`deploy/mezarbot.service.example`](deploy/mezarbot.service.example).
+Linux servisi için: [`deploy/mezarbot.service.example`](deploy/mezarbot.service.example).
+</details>
 
-**İlk adımlar (sunucuda)**
-- `/dil` → botun dili (tr / en), `/ayarlar` → log, hoş geldin, otorol vb.
-- `/ozelodaaktif` → özel ses odalarını kur, `/muzikayar` → DJ rolü, istek kanalı, 7/24 modu.
+<details>
+<summary><b>🔑 Ortam değişkenleri</b></summary>
 
-### Testler
+| Değişken | Gerekli | Ne için |
+|---|:---:|---|
+| `DISCORD_TOKEN` | ✅ | Bot token'ı |
+| `GROQ_API_KEY` | | Yapay zekâ sohbeti ve çeviri ([ücretsiz](https://console.groq.com)) |
+| `REPLICATE_API_TOKEN` | | `/ciz` resim çizimi |
+| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | | Spotify API (yoksa herkese açık embed sayfası kullanılır) |
+</details>
+
+**4. Sunucunda:** `/dil` → botun dili, `/ayarlar` → log, hoş geldin, otorol; `/ozelodaaktif` → özel ses odaları;
+`/muzikayar` → DJ rolü, istek kanalı, 7/24 modu. Tüm komutlar: [KOMUTLAR.md](KOMUTLAR.md).
+
+### 🧪 Testler
+
 ```bash
 venv/bin/python tests/smoke_test.py            # veritabanı, migrasyonlar, çok sunuculu davranış
 venv/bin/python tests/ozel_oda_test.py         # özel ses odaları
-venv/bin/python tests/muzik_test.py --agsiz    # müzik (ağsız; parametresiz çalıştırınca gerçek akış testleri de)
+venv/bin/python tests/muzik_test.py --agsiz    # müzik, ağsız (parametresiz: gerçek akış testleri de)
 ```
-Testler Discord'a bağlanmaz, gerçek veritabanına dokunmaz; her push'ta GitHub Actions'ta çalışır.
+Testler Discord'a bağlanmaz, gerçek veritabanına dokunmaz ve her push'ta çalışır.
 
-### Notlar
-- Kod, değişken adları ve mesajlar Türkçedir. Mimari ve kurallar: [AGENTS.md](AGENTS.md).
+### 📝 Notlar
+
+- Kod ve bot mesajları Türkçedir. Mimari ve kurallar: [AGENTS.md](AGENTS.md).
 - `cogs_devre_disi/` içindeki modüller (ekonomi, itiraf, kelime oyunu …) varsayılan olarak yüklenmez.
-- YouTube, veri merkezi IP'lerinden gelen isteklere sık sık bot doğrulaması sorar. VPS'te `data/cookies.txt`
-  (Netscape biçiminde tarayıcı çerezi) eklemek işe yarar; olmazsa SoundCloud yedeği devreye girer.
-- Müzik özellikleri yt-dlp üzerinden çalışır; kullandığın platformların kullanım koşullarına uymak senin sorumluluğundadır.
-- Görselleri yeniden üretmek için: `venv/bin/python docs/ekran/sahneler.py && node docs/ekran/cizici.js`.
+- VPS'te YouTube sık sık bot doğrulaması ister. `data/cookies.txt` (Netscape biçimi) eklemek işe yarar; kalanını
+  SoundCloud yedeği karşılar.
+- Müzik yt-dlp ile çalışır; kullandığın platformların kurallarına uymak senin sorumluluğundadır.
 
-## License / Lisans
-[MIT](LICENSE)
+<div align="center">
+
+**MezarBot işine yaradıysa bir ⭐ çok destek olur.**
+
+<sub>MIT lisanslı · <a href="LICENSE">LICENSE</a></sub>
+
+</div>
