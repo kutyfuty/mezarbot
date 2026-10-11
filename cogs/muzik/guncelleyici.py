@@ -50,6 +50,23 @@ def kurulu_surum():
             return "?"
 
 
+def ayni_surum(a, b):
+    """yt_dlp.__version__ '2026.08.19' der, pip metadata normalize edip '2026.8.19' der →
+    düz metin karşılaştırması her haftalık kontrolde 'yeni sürüm' sanıp botu boşuna yeniden başlatıyordu."""
+    try:
+        from packaging.version import Version, InvalidVersion
+        try:
+            return Version(a) == Version(b)
+        except InvalidVersion:
+            pass
+    except ImportError:
+        pass
+    try:
+        return tuple(int(p) for p in a.split(".")) == tuple(int(p) for p in b.split("."))
+    except (ValueError, AttributeError):
+        return a == b
+
+
 def pip_guncelle():
     """Senkron: pip ile yt-dlp'yi günceller → dict(basarili, eski, yeni, cikti). Executor'da çağrılmalı."""
     eski = calisan_surum()
@@ -65,7 +82,7 @@ def pip_guncelle():
         basarili, cikti = False, _t("pip çalıştırılamadı: {e}", e=e)
     yeni = kurulu_surum()
     return {'basarili': basarili, 'eski': eski, 'yeni': yeni, 'cikti': cikti,
-            'degisti': basarili and yeni not in ("?", eski)}
+            'degisti': basarili and yeni != "?" and not ayni_surum(yeni, eski)}
 
 
 async def guncelle(neden):
