@@ -241,6 +241,12 @@ def saf_mantik():
     _, sonra_k = ffmpeg_argumanlari(url, {}, 0, "bass=g=8", kopya=True)
     kontrol("-af" not in sonra_k and "-application" not in sonra_k, "doğrudan aktarımda -af / kodlayıcı ayarı yok")
 
+    from cogs.muzik.guncelleyici import ayni_surum
+    kontrol(ayni_surum("2026.08.19", "2026.8.19") and ayni_surum("2026.10.01", "2026.10.1"),
+            "yt-dlp sürümü: 2026.08.19 == 2026.8.19 (boşuna yeniden başlatma yok)")
+    kontrol(not ayni_surum("2026.08.19", "2026.10.1") and not ayni_surum("2026.8.19", "2026.8.19.1"),
+            "yt-dlp sürümü: gerçekten yeni sürüm algılanır")
+
 
 # ══════════════════════════════════════════════
 #  [2] VERİTABANI
