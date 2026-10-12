@@ -489,9 +489,10 @@ class Cozucu:
         return None
 
     # ── Tam çözüm (akış URL'si) ──
-    async def coz(self, parca, zorla=False):
+    async def coz(self, parca, zorla=False, istemci=None):
         """Parca'nın akış URL'sini doldurur. Arama sorgularında (Spotify eşleşmesi dahil) en iyi adayı seçer,
-        kısıtlı videolarda sıradaki adayı dener. Başarısızsa CozmeHatasi."""
+        kısıtlı videolarda sıradaki adayı dener. Başarısızsa CozmeHatasi.
+        istemci: YouTube player_client (ör. varsayılan istemcinin URL'si 403 verdiyse yedek istemci)."""
         if not zorla and parca.akis_gecerli_mi():
             return parca
         denenen = set()
@@ -500,7 +501,7 @@ class Cozucu:
             hedef = parca.sorgu
             if hedef.startswith(('ytsearch', 'scsearch')):
                 hedef = await self._aramadan_hedef(parca, denenen)
-            secenek = ydl_opts
+            secenek = {**ydl_opts, 'extractor_args': {'youtube': {'player_client': [istemci]}}} if istemci else ydl_opts
             bot_denemesi = 0
             for deneme in range(1 + len(YT_ISTEMCI_YEDEKLERI)):
                 try:

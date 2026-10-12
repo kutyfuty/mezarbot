@@ -31,7 +31,7 @@ import discord
 
 from arayuz import FFMPEG_YOLU
 from .filtreler import FiltreDurumu
-from .kaynaklar import CozmeHatasi, hata_sebebi
+from .kaynaklar import CozmeHatasi, YT_ISTEMCI_YEDEKLERI, hata_sebebi
 from .kuyruk import DONGU_KAPALI, DONGU_SARKI, Gecmis, Kuyruk, VARSAYILAN_KUYRUK_LIMITI
 from dil import _t, dilli_gorev
 
@@ -245,7 +245,8 @@ class Oynatici:
         self._niyet = None
         self._deneme = 0
         self._kilit = asyncio.Lock()
-        self._on_cozme = None           # (parca, task)
+        self._otomatik_kilit = asyncio.Lock()   # arka plan + sonrakine_gec aynı anda doldurmasın (çift ekleme)
+        self._on_cozme = None          # (parca, task)
         self._isitilmis = None          # (parca, kaynak, imza)
         self._isitma_gorevi = None
         self._ses_gorevi = None
@@ -369,16 +370,24 @@ class Oynatici:
         return True
 
     async def _cal_dayanikli(self, parca, konum):
-        """_cal başarısızsa (ör. URL 403) akış URL'sini yenileyip bir kez daha dener."""
+        """_cal başarısızsa (ör. URL 403) akış URL'sini yenileyip bir kez daha dener; YouTube yeni URL'yi de
+        reddederse son olarak yedek istemcinin (web_embedded) URL'siyle dener."""
         if await self._cal(parca, konum):
             return True
-        if self.kapandi or not self.bagli_mi():
-            return False
-        try:
-            await self.cog.cozucu.coz(parca, zorla=True)
-        except CozmeHatasi:
-            return False
-        return await self._cal(parca, konum)
+        for istemci in (None, YT_ISTEMCI_YEDEKLERI[0]):
+            if self.kapandi or not self.bagli_mi():
+                return False
+            if istemci and "googlevideo.com" not in (parca.akis_url or ""):
+                return False   # YouTube dışı kaynak: yedek istemci anlamsız
+            try:
+                await self.cog.cozucu.coz(parca, zorla=True, istemci=istemci)
+            except CozmeHatasi:
+                return False
+            if await self._cal(parca, konum):
+                if istemci:
+                    logger.info(f"[{self.guild_id}] 403 sonrası '{istemci}' istemcisiyle kurtarıldı: {parca.gosterim(50)}")
+                return True
+        return False
 
     def _bitti_cb(self, nesil, hata):
         """discord.py ses thread'inden çağrılır → olay döngüsüne aktar."""
@@ -577,18 +586,30 @@ class Oynatici:
             self._isitma_planla()
 
     async def _otomatik_doldur(self, tohum):
-        """Kuyruk bittiğinde benzer parçaları ekler (YouTube Mix). Eklenen sayısını döner."""
-        tohum = tohum or (self.gecmis.son(1) or [None])[0]
-        if tohum is None:
-            return 0
+        """Kuyruk bittiğinde benzer parçaları ekler (YouTube Mix). Eklenen sayısını döner
+        (başka bir doldurma bu sırada kuyruğu doldurduysa kuyruktaki parça sayısını)."""
+        async with self._otomatik_kilit:
+            if not self.kuyruk.bos_mu():
+                return len(self.kuyruk)
+            return await self._otomatik_doldur_kilitli(tohum)
+
+    def _haric_idler(self):
         haric = self.gecmis.video_idleri() | {p.video_id for p in self.kuyruk if p.video_id}
         if self.simdiki and self.simdiki.video_id:
             haric.add(self.simdiki.video_id)
+        return haric
+
+    async def _otomatik_doldur_kilitli(self, tohum):
+        tohum = tohum or (self.gecmis.son(1) or [None])[0]
+        if tohum is None:
+            return 0
         try:
-            yeniler = await self.cog.cozucu.radyo(tohum, haric, self.gecmis.basliklar(), adet=OTOMATIK_EKLEME)
+            yeniler = await self.cog.cozucu.radyo(tohum, self._haric_idler(), self.gecmis.basliklar(), adet=OTOMATIK_EKLEME)
         except Exception as e:  # işçi / yt-dlp / ağ hataları: otomatik oynatma sessizce durur
             logger.warning(f"[{self.guild_id}] Otomatik oynatma önerisi alınamadı: {hata_sebebi(e).sebep}")
             return 0
+        haric = self._haric_idler()   # beklerken çalan/kuyruk değişmiş olabilir
+        yeniler = [p for p in yeniler if not p.video_id or p.video_id not in haric]
         me = self.guild.me if self.guild else None
         for p in yeniler:
             p.isteyen_id = me.id if me else 0
