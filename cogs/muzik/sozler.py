@@ -17,6 +17,7 @@ logger = logging.getLogger('MezarBot.Muzik.Sozler')
 LRCLIB = "https://lrclib.net/api"
 _BASLIKLAR = {'User-Agent': 'MezarBot/2.0 (Discord muzik botu; https://lrclib.net kullanicisi)'}
 _ONBELLEK_BOYUTU = 128
+_GECICI_HATA = object()
 
 # Başlıktan atılacak kalıplar: (Official Video), [HD], | Lyrics, ft. X, #etiket ...
 _PARANTEZ = re.compile(r'[\(\[【](?:[^\)\]】]*?)(?:official|video|audio|lyric|klip|hd|4k|remaster|visualizer|'
@@ -122,17 +123,22 @@ class SozIstemcisi:
 
     async def _getir(self, yol, params):
         oturum = await self._http()
-        try:
-            async with oturum.get(f"{LRCLIB}/{yol}", params=params) as yanit:
-                if yanit.status == 404:
-                    return None
-                if yanit.status != 200:
+        """→ JSON, 404'te None, geçici hatada (5xx/zaman aşımı, bir kez yeniden denenir) _GECICI_HATA."""
+        for deneme in range(2):
+            if deneme:
+                await asyncio.sleep(1)
+            try:
+                async with oturum.get(f"{LRCLIB}/{yol}", params=params) as yanit:
+                    if yanit.status == 404:
+                        return None
+                    if yanit.status == 200:
+                        return await yanit.json(content_type=None)
                     logger.warning(f"LRCLIB HTTP {yanit.status} ({yol})")
-                    return None
-                return await yanit.json(content_type=None)
-        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as e:
-            logger.warning(f"LRCLIB isteği başarısız ({yol}): {e}")
-            return None
+                    if yanit.status < 500 and yanit.status != 429:
+                        return None
+            except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as e:
+                logger.warning(f"LRCLIB isteği başarısız ({yol}): {e}")
+        return _GECICI_HATA
 
     async def bul(self, baslik, sanatci="", sure=0, serbest_sorgu=None):
         """→ dict(sanatci, baslik, album, sure, senkron=[(sn, satır)], duz=str, enstrumantal=bool) ya da None."""
@@ -145,17 +151,29 @@ class SozIstemcisi:
             self._onbellek.move_to_end(anahtar)
             return self._onbellek[anahtar]
 
+        hata = False
+
+        async def getir(yol, params):
+            nonlocal hata
+            veri = await self._getir(yol, params)
+            if veri is _GECICI_HATA:
+                hata = True
+                return None
+            return veri
+
         kayit = None
         if s and b and sure and not serbest_sorgu:
-            kayit = await self._getir("get", {"artist_name": s, "track_name": b, "duration": int(sure)})
+            kayit = await getir("get", {"artist_name": s, "track_name": b, "duration": int(sure)})
         if not kayit and b:
             params = {"track_name": b}
             if s:
                 params["artist_name"] = s
-            kayit = self._en_iyi(await self._getir("search", params), sure)
+            kayit = self._en_iyi(await getir("search", params), sure)
         if not kayit:
-            kayit = self._en_iyi(await self._getir("search", {"q": f"{s} {b}".strip()}), sure)
+            kayit = self._en_iyi(await getir("search", {"q": f"{s} {b}".strip()}), sure)
         sonuc = self._bicimle(kayit) if kayit else None
+        if sonuc is None and hata:
+            return None   # LRCLIB geçici hatası: "bulunamadı" önbelleğe yazılmaz, sonraki istek yeniden dener
         self._onbellek[anahtar] = sonuc
         while len(self._onbellek) > _ONBELLEK_BOYUTU:
             self._onbellek.popitem(last=False)

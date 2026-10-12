@@ -380,7 +380,7 @@ class SahteCozucu:
         self.radyo_dosyasi = radyo_dosyasi
         self.coz_sayisi = 0
 
-    async def coz(self, parca, zorla=False):
+    async def coz(self, parca, zorla=False, istemci=None):
         from cogs.muzik.kaynaklar import CozmeHatasi
         if not zorla and parca.akis_gecerli_mi():
             return parca
@@ -492,6 +492,35 @@ async def izolasyon():
     o2.filtre.bas = 3
     kontrol(len(o2.kuyruk) == 0 and o2.dongu != DONGU_SARKI and o1.filtre.bas == 0, "kuyruk / döngü / filtre bağımsız")
     kontrol(o1.kuyruk is not o2.kuyruk and o1.gecmis is not o2.gecmis and o1._kilit is not o2._kilit, "ayrı nesneler (kilit dahil)")
+
+    # arka plan doldurma + sonrakine_gec aynı anda çalışınca öneriler iki kez eklenmemeli
+    o3, _, cog3 = sahte_ortam(mdb.muzik_ayar_al(13), gid=13)
+    asil_radyo = cog3.cozucu.radyo
+
+    async def yavas_radyo(*a, **k):
+        await asyncio.sleep(0.05)
+        return await asil_radyo(*a, **k)
+    cog3.cozucu.radyo = yavas_radyo
+    tohum = Parca(sorgu="t", video_id="tohum")
+    s1, s2 = await asyncio.gather(o3._otomatik_doldur(tohum), o3._otomatik_doldur(tohum))
+    kontrol(len(o3.kuyruk) == 1 and s1 == 1 and s2 == 1, f"eşzamanlı otomatik doldurma tek kez ekler (kuyruk={len(o3.kuyruk)})")
+    o3.kuyruk.temizle()
+    o3.simdiki = Parca(sorgu="r", video_id="radyo1")
+    kontrol(await o3._otomatik_doldur(tohum) == 0 and len(o3.kuyruk) == 0, "beklerken çalmaya başlayan öneri tekrar eklenmez")
+
+    # sözler: LRCLIB geçici hatası "bulunamadı" olarak önbelleğe yazılmaz
+    from cogs.muzik import sozler as sz
+    s = sz.SozIstemcisi()
+    lrclib_cevap = [sz._GECICI_HATA]
+
+    async def sahte_getir(yol, params):
+        return lrclib_cevap[0]
+    s._getir = sahte_getir
+    ilk = await s.bul("", serbest_sorgu="A - B")
+    lrclib_cevap[0] = [{"artistName": "A", "trackName": "B", "plainLyrics": "la la", "duration": 100}]
+    ikinci = await s.bul("", serbest_sorgu="A - B")
+    kontrol(ilk is None and ikinci is not None and ikinci["duz"] == "la la", "söz: geçici hata önbelleğe yazılmaz, ikinci istek bulur")
+    await s.kapat()
 
 
 # ══════════════════════════════════════════════
@@ -655,6 +684,14 @@ async def gercek_akis(cozucu):
     rc, _, err = calistir(args, 5)
     kontrol(rc == 0, "sarma (-ss 95) + copy → çıkış kodu 0")
 
+    # 403 kurtarma: yedek istemcinin (web_embedded) URL'si de FFmpeg'le çalınabilmeli
+    from cogs.muzik.kaynaklar import YT_ISTEMCI_YEDEKLERI
+    p2 = Parca(sorgu=p.sorgu)
+    await cozucu.coz(p2, zorla=True, istemci=YT_ISTEMCI_YEDEKLERI[0])
+    args, _ = birebir_argumanlar(p2, "", True)
+    rc, _, err = calistir(args, 5)
+    kontrol(rc == 0 and "googlevideo.com" in p2.akis_url, f"yedek istemci ({YT_ISTEMCI_YEDEKLERI[0]}) akışı 5 sn → çıkış kodu 0 {err if rc else ''}")
+
     # Tampon üzerinden gerçek okuma
     ic = opus_kaynagi_olustur(p.akis_url, p.akis_basliklari, 30, "", True, False, HataTamponu())
     kaynak = OnbellekliKaynak(ic, True, 30, 1.0, HataTamponu())
@@ -771,7 +808,7 @@ async def sozler():
         r2 = await s.bul("TARKAN - Şımarık (Official Music Video)", "Tarkan", 192)
         kontrol(r2 is r and time.monotonic() - t < 0.05, "önbellek: ikinci istek ağa gitmez")
         r3 = await s.bul("", serbest_sorgu="sezen aksu gülümse")
-        kontrol(r3 is not None and (r3["duz"] or r3["senkron"]), f"serbest arama: {r3['sanatci']} - {r3['baslik']}")
+        kontrol(r3 is not None and (r3["duz"] or r3["senkron"]), f"serbest arama: {r3 and r3['sanatci']} - {r3 and r3['baslik']}")
         kontrol(await s.bul("zzqxw asdkjh qwpoeiru", "") is None, "bulunamayan şarkı → None")
     finally:
         await s.kapat()
