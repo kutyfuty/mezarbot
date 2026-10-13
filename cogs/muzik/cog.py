@@ -546,6 +546,20 @@ class Muzik(commands.Cog):
         devam = ek if (toplam > ilk or (not toplam and len(parcalar) >= ilk)) and limit > ilk else None
         return baslik, parcalar, devam, max(toplam, len(parcalar))
 
+    @staticmethod
+    def _otomatik_oncesi(oyn):
+        """Biri elle şarkı ekliyor: kuyruktaki otomatik öneriler çıkarılır (eklenen şarkı onları beklemez; kuyruk bitince
+        otomatik oynatma son çalandan yeni öneri bulur). → Şu an otomatik bir öneri çalıyorsa True (hemen geçilecek)."""
+        oyn.kuyruk.otomatikleri_kaldir()
+        return bool(oyn.simdiki is not None and oyn.simdiki.otomatik and oyn.caliyor_mu() and not oyn.mesgul_mu())
+
+    async def _ekleme_sonrasi(self, oyn, gid, onune_gec):
+        """Kuyruğa ekledikten sonra: çalan otomatik öneriyse eklenen şarkıya hemen geç, değilse ön çözme + panel."""
+        if onune_gec and await oyn.atla() == 'ok':
+            return
+        oyn._on_coz_baslat()
+        await self.panel_guncelle(gid)
+
     async def _oynat_ortak(self, uye, metin_kanal, sorgu, basa, yanit):
         """oynat / sıradaki / istek kanalı ortak mantığı. yanit(icerik=None, embed=None) coroutine."""
         oyn, hata = await self._sese_baglan(uye, metin_kanal)
@@ -561,6 +575,8 @@ class Muzik(commands.Cog):
         except (IsciHatasi, asyncio.TimeoutError) as e:
             return await yanit(_t("❌ Çalınamıyor: {sebep}", sebep=_t(hata_sebebi(e).sebep)))
         self._isteyen_ata(parcalar, uye)
+        onune_gec = self._otomatik_oncesi(oyn)
+        bos_yer = oyn.kuyruk.bos_yer()
         if basa:
             eklenen = 0
             for p in reversed(parcalar[:bos_yer]):
@@ -575,6 +591,8 @@ class Muzik(commands.Cog):
             satirlar = [_t("📋 **{escape_markdown}** — **{eklenen}** parça {d5} eklendi.", escape_markdown=discord.utils.escape_markdown(liste_basligi or 'Liste'), eklenen=eklenen, d5=_t("sıranın başına") if basa else _t("kuyruğa"))]
             if devam:
                 satirlar.append(_t("⏳ Kalan parçalar arka planda ekleniyor… (toplam ~{toplam})", toplam=toplam))
+            if onune_gec:
+                satirlar.append(_t("📻 Otomatik öneri yerine hemen senin listen başlıyor."))
             if eklenen < len(parcalar):
                 satirlar.append(_t("⚠️ Kuyruk sınırı ({limit}) nedeniyle {d3} parça eklenemedi.", limit=oyn.kuyruk.limit, d3=len(parcalar) - eklenen))
             embed = discord.Embed(color=MUZIK_RENGI, description="\n".join(satirlar))
@@ -584,6 +602,8 @@ class Muzik(commands.Cog):
             p = parcalar[0]
             if baslayacak:
                 durum = _t("▶️ **Şimdi çalınıyor**")
+            elif onune_gec:
+                durum = _t("▶️ **Şimdi çalınıyor** — otomatik önerinin yerine")
             elif basa:
                 durum = _t("⏭️ **Sıradaki olarak eklendi**")
             else:
@@ -598,8 +618,7 @@ class Muzik(commands.Cog):
         if baslayacak:
             await oyn.baslat_bossa()
         else:
-            oyn._on_coz_baslat()
-            await self.panel_guncelle(uye.guild.id)
+            await self._ekleme_sonrasi(oyn, uye.guild.id, onune_gec)
 
     async def _playlist_devam(self, oyn, url, bas, uye):
         """Büyük playlist'in kalanını arka planda (işçi süreçte) çekip kuyruğa ekler."""
@@ -636,6 +655,7 @@ class Muzik(commands.Cog):
         except ValueError:
             pass
         self._isteyen_ata(parcalar, ctx.author)
+        onune_gec = self._otomatik_oncesi(oyn)
         if basa:
             eklenen = 0
             for p in reversed(parcalar[:oyn.kuyruk.bos_yer()]):
@@ -653,8 +673,7 @@ class Muzik(commands.Cog):
         if oyn.simdiki is None and not oyn.caliyor_mu():
             await oyn.baslat_bossa()
         else:
-            oyn._on_coz_baslat()
-            await self.panel_guncelle(ctx.guild.id)
+            await self._ekleme_sonrasi(oyn, ctx.guild.id, onune_gec)
 
     async def _oynat_komutu(self, ctx, sorgu, basa):
         if not sorgu and ctx.message and ctx.message.attachments:
