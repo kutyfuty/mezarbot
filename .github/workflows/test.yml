@@ -25,6 +25,7 @@ jobs:
           python tests/ozel_oda_test.py
           python tests/dil_test.py
           python tests/muzik_test.py --agsiz
+          python tests/ornekler_test.py
 
   docker:
     runs-on: ubuntu-latest

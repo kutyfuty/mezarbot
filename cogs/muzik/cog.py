@@ -17,8 +17,8 @@ from discord.ext import commands, tasks
 import muzik_veritabani as mdb
 from database import db, yonetici_mi
 from arayuz import DURUM_TIPLERI
-from yapilandirma import PREFIX, YTDLP_JS_CALISMA_ORTAMLARI, SAHIP_ID
-from . import guncelleyici
+from yapilandirma import MUZIK_PROFILI, PREFIX, YTDLP_JS_CALISMA_ORTAMLARI, SAHIP_ID
+from . import guncelleyici, ornekler
 from .filtreler import BAS_SEVIYELERI, FILTRE_SECENEKLERI, secenek_uygula
 from .kaynaklar import (ILK_PARTI, SPOTIFY_REGEX, Cozucu, CozmeHatasi, IsciHatasi, girdi_turu, hata_sebebi)
 from .kuyruk import (DONGU_ETIKET, DONGU_SIRASI, DONGU_TAKMA_ADLAR, KuyrukDolu, Parca, dongu_sonraki_mod,
@@ -173,7 +173,7 @@ class Muzik(commands.Cog):
     async def cog_check(self, ctx):
         if ctx.guild is None:
             raise commands.NoPrivateMessage()
-        return True
+        return await ornekler.denetle(self, ctx)   # çoklu müzik botu: komutu doğru bot üstlensin
 
     async def cog_before_invoke(self, ctx):
         # Prefix komut mesajlarını sil (kanal temiz kalsın); slash komutlarında mesaj yok
@@ -1572,6 +1572,12 @@ class Muzik(commands.Cog):
 
     @tasks.loop(hours=12)
     async def ytdlp_dongusu(self):
+        if MUZIK_PROFILI:
+            # yt-dlp'yi yalnızca ana bot günceller (aynı venv). İkinci bot, kurulu sürüm değiştiyse boşta kalınca yeniden başlar.
+            calisan, kurulu = guncelleyici.calisan_surum(), await asyncio.to_thread(guncelleyici.kurulu_surum)
+            if "?" not in (calisan, kurulu) and not guncelleyici.ayni_surum(calisan, kurulu):
+                self._arka_gorev(guncelleyici.yeniden_baslat(self.bot, self, aninda=False))
+            return
         son = float(mdb.bot_durum_al(guncelleyici.DURUM_ANAHTARI, 0) or 0)
         if time.time() - son < guncelleyici.KONTROL_ARALIGI:
             return
@@ -1717,6 +1723,16 @@ class Muzik(commands.Cog):
         if not await oyn.yeniden_baslat(konum):
             await oyn.sonrakine_gec(biten=oyn.simdiki)
         await self.bildir(gid, _t("🔌 Ses bağlantısı koptu — yeniden bağlandım, kaldığı yerden devam ediyorum."))
+
+    @commands.Cog.listener()
+    async def on_member_join(self, uye):
+        if uye.bot:
+            ornekler.uyelik_degisti(uye.guild.id, uye.id)   # yeni müzik botu eklendi → yönlendirme hemen bilsin
+
+    @commands.Cog.listener()
+    async def on_member_remove(self, uye):
+        if uye.bot:
+            ornekler.uyelik_degisti(uye.guild.id, uye.id)
 
     @commands.Cog.listener()
     async def on_message(self, message):

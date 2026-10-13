@@ -166,6 +166,15 @@ flowchart LR
 Resolving runs in separate processes, so heavy yt-dlp work never blocks the audio thread. Opus sources go to Discord
 without re-encoding, and the next song is resolved while the current one plays.
 
+### 🎶 Two rooms at once (multi-instance)
+A Discord bot account can only be in one voice channel per server, so a second room needs a second bot account.
+Run the same code a second time with `MEZARBOT_PROFIL=muzik` (token in `.env.muzikbaba`): it loads only the music
+module and keeps its own lock, log and database. List both bot IDs in `config.json` → `muzik_ornekleri` (order = priority).
+
+Commands are smart: `!oynat` is answered only by the bot in **your** voice channel, or by the first free bot if
+your channel has none. The other bots stay silent. If you pick the wrong bot from the slash menu, it tells you which
+bot to use. The bots never talk to each other: each one reads Discord's voice states and reaches the same decision.
+
 ## 🧪 Tests
 
 ```bash
@@ -173,6 +182,7 @@ venv/bin/python tests/smoke_test.py            # database, migrations, multi-ser
 venv/bin/python tests/ozel_oda_test.py         # private voice rooms
 venv/bin/python tests/dil_test.py              # every reply has an English translation
 venv/bin/python tests/muzik_test.py --agsiz    # music, offline (drop the flag to test real streams)
+venv/bin/python tests/ornekler_test.py         # two music bots: which bot answers which room
 ```
 Tests never connect to Discord or touch your real database, and they run on every push.
 
@@ -329,6 +339,15 @@ Linux servisi için: [`deploy/mezarbot.service.example`](deploy/mezarbot.service
 **4. Sunucunda:** `/dil` → botun dili, `/ayarlar` → log, hoş geldin, otorol; `/ozelodaaktif` → özel ses odaları;
 `/muzikayar` → DJ rolü, istek kanalı, 7/24 modu. Tüm komutlar: [KOMUTLAR.md](KOMUTLAR.md).
 
+### 🎶 İki odada aynı anda müzik (çoklu bot)
+Bir Discord bot hesabı bir sunucuda aynı anda tek ses kanalında olabilir; ikinci oda için ikinci bot hesabı gerekir.
+Aynı kodu `MEZARBOT_PROFIL=muzik` ile ikinci kez çalıştır (token `.env.muzikbaba` içinde): yalnızca müzik modülü yüklenir,
+kendi kilidi, log'u ve veritabanı olur. İki botun ID'sini `config.json` → `muzik_ornekleri` listesine yaz (sıra = öncelik).
+
+Komutlar akıllıdır: `!oynat` yazınca yalnızca **senin** ses kanalındaki bot cevap verir; odanda bot yoksa boştaki ilk bot
+gelir, diğerleri susar. Slash menüsünden yanlış botu seçersen hangi botu kullanman gerektiğini söyler. Botlar birbiriyle
+konuşmaz; her biri Discord'un ses durumlarına bakıp aynı kararı kendisi verir.
+
 ### 🧪 Testler
 
 ```bash
@@ -336,6 +355,7 @@ venv/bin/python tests/smoke_test.py            # veritabanı, migrasyonlar, çok
 venv/bin/python tests/ozel_oda_test.py         # özel ses odaları
 venv/bin/python tests/dil_test.py              # her yanıtın İngilizcesi var
 venv/bin/python tests/muzik_test.py --agsiz    # müzik, ağsız (parametresiz: gerçek akış testleri de)
+venv/bin/python tests/ornekler_test.py         # iki müzik botu: hangi oda hangi bota düşer
 ```
 Testler Discord'a bağlanmaz, gerçek veritabanına dokunmaz ve her push'ta çalışır.
 

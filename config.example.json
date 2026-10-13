@@ -1,6 +1,8 @@
 {
     "_NOT": "Gizli anahtarlar (DISCORD_TOKEN, GROQ_API_KEY vb.) .env dosyasinda durur, buraya YAZMA. Sunucuya ozel ayarlar (log, hosgeldin kanali vb.) veritabaninda tutulur, her sunucunun yoneticisi komutla ayarlar (/ayarlar).",
     "prefix": "!",
+    "_muzik_ornekleri": "Istege bagli coklu muzik botu: ayni kodu calistiran bot hesaplarinin ID'leri (sira = oncelik). Ikinci hesap MEZARBOT_PROFIL=muzik ile, token'i .env.muzikbaba dosyasindan calisir. Bos: tek bot.",
+    "muzik_ornekleri": [],
     "_sahip_id": "Bot sahibinin Discord kullanici ID'si (sahip komutlari, dokunulmazlik). Discord'da Gelistirici Modu acip profiline sag tik → ID'yi Kopyala.",
     "sahip_id": "",
     "_guvenilir_idler": "Sahibe ek olarak dokunulmaz (ceza verilemez) ve /yaz komutunu yetkisiz kullanabilen kullanici ID'leri.",
