@@ -256,7 +256,9 @@ def veritabani():
     print("\n[2] Müzik veritabanı (geçici DB)")
     import database as d
     d.veritabanini_kur()
-    d.sunucu_ayar_guncelle(7777, oygec_aktif=1)   # eski !oygec ayarı
+    eski_sema = hasattr(d, "sunucu_ayar_guncelle")   # yalnızca MezarBot'ta: eski sunucu_ayarlar.oygec_aktif
+    if eski_sema:
+        d.sunucu_ayar_guncelle(7777, oygec_aktif=1)   # eski !oygec ayarı
     import muzik_veritabani as mdb
     mdb.muzik_veritabanini_kur()
     mdb.muzik_veritabanini_kur()
@@ -264,7 +266,8 @@ def veritabani():
     kontrol(set(mdb.MUZIK_AYAR_KOLONLARI) <= kolonlar, "muzik_ayarlar: tüm kolonlar (migrasyon iki kez)")
     for tablo in ("muzik_calma_listeleri", "muzik_calma_listesi_parcalari", "muzik_bot_durum"):
         kontrol(d.db.execute("SELECT 1 FROM sqlite_master WHERE name = ?", (tablo,)).fetchone() is not None, f"tablo var: {tablo}")
-    kontrol(mdb.muzik_ayar_al(7777)["oylama_aktif"] == 1, "eski oygec_aktif → oylama_aktif taşındı")
+    if eski_sema:
+        kontrol(mdb.muzik_ayar_al(7777)["oylama_aktif"] == 1, "eski oygec_aktif → oylama_aktif taşındı")
     mdb.muzik_ayar_guncelle(7777, oylama_aktif=0)
     mdb.muzik_veritabanini_kur()
     kontrol(mdb.muzik_ayar_al(7777)["oylama_aktif"] == 0, "yeniden kurulum yeni ayarı ezmez")

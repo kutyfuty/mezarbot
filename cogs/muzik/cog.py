@@ -342,7 +342,7 @@ class Muzik(commands.Cog):
         mdb.muzik_ayar_guncelle(gid, panel_kanal_id=kanal.id, panel_mesaj_id=mesaj.id)
         if istek is not None and izin.manage_messages:
             try:
-                await mesaj.pin(reason=_t("MezarBot müzik paneli"))
+                await mesaj.pin(reason=_t("{bot} müzik paneli", bot=self.bot.user.name))
             except discord.HTTPException:
                 pass
 
@@ -1529,7 +1529,7 @@ class Muzik(commands.Cog):
                 return await self._yanit(ctx, _t("❌ Kanal oluşturma yetkim yok — mevcut bir kanal belirt: `/muzikayar istekkanali #kanal`"))
             kanal = await ctx.guild.create_text_channel(
                 "🎵・müzik-istek", topic="Şarkı adı ya da link yaz → kuyruğa eklenir. Mesajlar otomatik silinir.",
-                reason=f"MezarBot müzik istek kanalı ({ctx.author})")
+                reason=f"{self.bot.user.name} müzik istek kanalı ({ctx.author})")
         izin = kanal.permissions_for(ctx.guild.me)
         if not (izin.send_messages and izin.embed_links and izin.manage_messages and izin.read_message_history):
             return await self._yanit(ctx, _t("❌ {mention} kanalında **Mesaj Gönder, Bağlantı Yerleştir, Mesajları Yönet, Mesaj Geçmişini Oku** yetkilerim olmalı.", mention=kanal.mention))

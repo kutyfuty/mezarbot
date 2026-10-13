@@ -119,8 +119,8 @@ EN = {
         "🎧 You need to be in the same voice channel as me (**{name}**) to do that.",
     "🎚️ Bu işlem için **DJ rolü** (<@&{rol_id}>) gerekli.":
         "🎚️ This needs the **DJ role** (<@&{rol_id}>).",
-    "MezarBot müzik paneli":
-        "MezarBot music panel",
+    "{bot} müzik paneli":
+        "{bot} music panel",
     "⏹️ Durduruldu, kuyruk temizlendi. (7/24 modu: kanalda kalıyorum)":
         "⏹️ Stopped and cleared the queue. (24/7 mode: staying in the channel)",
     "⏹️ Durduruldu ve kanaldan ayrıldım.":
@@ -513,10 +513,10 @@ EN = {
         "The queue is empty — add songs with `/oynat`",
     "⏭️ Sıradaki":
         "⏭️ Up Next",
-    "MezarBot Premium Müzik":
-        "MezarBot Premium Music",
-    "🎵 MezarBot Müzik":
-        "🎵 MezarBot Music",
+    "{bot} Premium Müzik":
+        "{bot} Premium Music",
+    "🎵 {bot} Müzik":
+        "🎵 {bot} Music",
     "**Bir ses kanalına gir ve bu kanala şarkı adı ya da link yaz** — gerisini ben hallederim.\n-# Mesajın sıraya eklenince otomatik silinir; kanal hep temiz kalır.":
         "**Join a voice channel and type a song name or link in this channel** — I'll take care of the rest.\n-# Your message is deleted once it's queued, so the channel always stays clean.",
     "Bir ses kanalına gir ve `/oynat <şarkı>` ya da `{prefix}oynat <şarkı>` yaz.":

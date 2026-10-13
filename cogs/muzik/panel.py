@@ -60,6 +60,12 @@ def _dave_durumu(vc):
 #  EMBED'LER
 # ══════════════════════════════════════════════
 
+def bot_adi(guild):
+    """Panelde görünen bot adı: sunucudaki görünen adı (ikinci müzik botu kendi adını gösterir)."""
+    me = guild.me if guild is not None else None
+    return me.display_name if me is not None else "MezarBot"
+
+
 def calma_embedi(oyn):
     p = oyn.simdiki
     ikon, isim, renk = kaynak_bilgi(p.kaynak)
@@ -111,7 +117,7 @@ def calma_embedi(oyn):
         sonraki_metin = _t("Kuyruk boş — `/oynat` ile ekle")
     embed.add_field(name=_t("⏭️ Sıradaki"), value=sonraki_metin, inline=False)
 
-    alt = [_t("MezarBot Premium Müzik")]
+    alt = [_t("{bot} Premium Müzik", bot=bot_adi(oyn.guild))]
     dave = _dave_durumu(vc)
     if dave:
         alt.append(dave)
@@ -122,7 +128,7 @@ def calma_embedi(oyn):
 
 
 def bosta_embedi(guild, istek_kanali=False, prefix="!", son_mesaj=None):
-    embed = discord.Embed(color=MUZIK_RENGI, title=_t("🎵 MezarBot Müzik"))
+    embed = discord.Embed(color=MUZIK_RENGI, title=_t("🎵 {bot} Müzik", bot=bot_adi(guild)))
     if istek_kanali:
         nasil = (_t("**Bir ses kanalına gir ve bu kanala şarkı adı ya da link yaz** — gerisini ben hallederim.\n-# Mesajın sıraya eklenince otomatik silinir; kanal hep temiz kalır."))
     else:
@@ -134,7 +140,7 @@ def bosta_embedi(guild, istek_kanali=False, prefix="!", son_mesaj=None):
     embed.add_field(name=_t("✨ Öne Çıkanlar"),
                     value=_t("📻 Otomatik oynatma · 📶 Ses dengeleme · 🎤 Senkron sözler · ❤️ Kişisel listeler\n🛟 YouTube çalamazsa SoundCloud yedeği"),
                     inline=False)
-    embed.set_footer(text=_t("MezarBot Premium Müzik"))
+    embed.set_footer(text=_t("{bot} Premium Müzik", bot=bot_adi(guild)))
     if guild and guild.icon:
         embed.set_thumbnail(url=guild.icon.url)
     return embed
