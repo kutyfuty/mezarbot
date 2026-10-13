@@ -17,21 +17,32 @@ from dotenv import load_dotenv
 
 logger = logging.getLogger('MezarBot.Yapilandirma')
 
+# ── Profil ──
+# MEZARBOT_PROFIL=muzik → aynı kodla yalnızca müzik çalan ikinci bot hesabı (ör. MüzikBaba). Kendi token'ı
+# (.env.muzikbaba), kilidi, log'u ve veritabanı (data/muzikbaba.db) olur; ana botla çakışmaz. Bkz. cogs/muzik/ornekler.py
+PROFIL = (os.getenv("MEZARBOT_PROFIL") or "").strip().lower()
+MUZIK_PROFILI = PROFIL == "muzik"
+
 # ── Yollar ──
 BOT_DIZINI = os.path.dirname(os.path.abspath(__file__))
 ENV_DOSYA = os.path.join(BOT_DIZINI, ".env")
+PROFIL_ENV_DOSYA = os.path.join(BOT_DIZINI, ".env.muzikbaba") if MUZIK_PROFILI else None
 CONFIG_DOSYA = os.path.join(BOT_DIZINI, "config.json")
 VERI_DIZINI = os.path.join(BOT_DIZINI, "data")
 GECICI_DIZIN = os.path.join(VERI_DIZINI, "tmp")            # TTS mp3 vb. geçici dosyalar
 YTDL_CACHE_DIZINI = os.path.join(VERI_DIZINI, ".ytdl_cache")
-LOG_DOSYA = os.path.join(BOT_DIZINI, "mezarbot.log")
-KILIT_DOSYA = os.path.join(BOT_DIZINI, "bot.lock")
+LOG_DOSYA = os.path.join(BOT_DIZINI, "muzikbaba.log" if MUZIK_PROFILI else "mezarbot.log")
+KILIT_DOSYA = os.path.join(BOT_DIZINI, "muzikbaba.lock" if MUZIK_PROFILI else "bot.lock")
 
 # .env'yi bot dizininden yükle (CWD'den değil). Ortamda zaten tanımlı değişkenleri ezmez.
+# Müzik profilinde önce kendi dosyası yüklenir (DISCORD_TOKEN oradan gelir); ortak anahtarlar (Spotify vb.) .env'den.
+if PROFIL_ENV_DOSYA:
+    load_dotenv(PROFIL_ENV_DOSYA, override=False)
 load_dotenv(ENV_DOSYA, override=False)
 
 # Veritabanı yolu. MEZARBOT_DB ortam değişkeni sadece test/araç amaçlıdır (ör. geçici kopya).
-DB_DOSYA = os.path.abspath(os.getenv("MEZARBOT_DB") or os.path.join(BOT_DIZINI, "mezarbot.db"))
+_VARSAYILAN_DB = os.path.join(VERI_DIZINI, "muzikbaba.db") if MUZIK_PROFILI else os.path.join(BOT_DIZINI, "mezarbot.db")
+DB_DOSYA = os.path.abspath(os.getenv("MEZARBOT_DB") or _VARSAYILAN_DB)
 
 
 def _config_oku():
@@ -91,6 +102,9 @@ GUVENILIR_IDLER = frozenset(([SAHIP_ID] if SAHIP_ID else []) + _id_listesi(_conf
 EK_COGLAR = [str(c) for c in _config.get("ek_coglar") or [] if str(c).strip()]
 # Durum (presence) döngüsü: [["metin", "playing|watching|listening"], ...]. Boşsa varsayılan liste.
 DURUM_MESAJLARI = [tuple(x) for x in _config.get("durum_mesajlari") or [] if isinstance(x, list) and len(x) == 2]
+
+# Çoklu müzik botu: aynı sunucuda farklı ses kanallarında çalan bot hesaplarının ID'leri (sıra = öncelik).
+MUZIK_ORNEKLERI = _id_listesi(_config, "muzik_ornekleri")
 
 # Üye onay kapısı (cogs/sunucu_onay.py) — tek bir sunucu için; sunucu_id boşsa sistem kapalıdır.
 _onay = _config.get("onay_sistemi") or {}

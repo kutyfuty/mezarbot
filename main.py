@@ -20,7 +20,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from yapilandirma import EK_COGLAR, ENV_DOSYA, GECICI_DIZIN, KILIT_DOSYA, LOG_DOSYA, PREFIX, SAHIP_ID
+from yapilandirma import EK_COGLAR, ENV_DOSYA, GECICI_DIZIN, KILIT_DOSYA, LOG_DOSYA, MUZIK_PROFILI, PREFIX, PROFIL_ENV_DOSYA, SAHIP_ID
 from database import EkonomiMigrasyonHatasi, veritabanini_kur
 from dil import DilAgaci, DilCevirmeni, _t, kancalari_kur
 
@@ -49,11 +49,13 @@ OPSIYONEL_ANAHTARLAR = (
 def opsiyonel_anahtarlari_raporla():
     """Hangi opsiyonel özelliklerin açık olduğunu log'a yazar. Anahtar DEĞERLERİNİ asla yazdırmaz."""
     for anahtar, ozellik in OPSIYONEL_ANAHTARLAR:
+        if MUZIK_PROFILI and not anahtar.startswith("SPOTIFY"):
+            continue   # MüzikBaba yalnızca müzik çalar
         if (os.getenv(anahtar) or "").strip():
             logger.info(f"🔑 {anahtar} ayarlı → {ozellik}: aktif")
         else:
             logger.warning(f"🔑 {anahtar} boş → {ozellik}: devre dışı")
-    if (os.getenv("HUGGINGFACE_TOKEN") or "").strip():
+    if not MUZIK_PROFILI and (os.getenv("HUGGINGFACE_TOKEN") or "").strip():
         logger.info("🔑 HUGGINGFACE_TOKEN ayarlı ama şu an hiçbir özellik kullanmıyor.")
 
 
@@ -112,6 +114,9 @@ vagonlar = [
     'cogs.ozel_oda', 'cogs.sunucu_onay', 'cogs.ceviri'
 ]
 vagonlar += [c for c in EK_COGLAR if c not in vagonlar]   # config.json → ek_coglar (kuruluma özel)
+if MUZIK_PROFILI:
+    # İkinci bot hesabı (MüzikBaba): yalnızca müzik. Ana botla aynı sunucuda başka bir ses kanalında çalar.
+    vagonlar = ['cogs.muzik', 'cogs.muzikbaba']
 
 
 @bot.event
@@ -144,6 +149,13 @@ async def on_ready():
 
 @bot.event
 async def on_command_error(ctx, error):
+    # Çoklu müzik botu: komutu başka bir müzik botu üstlendi → sessiz kal
+    from cogs.muzik.ornekler import BaskaOrnekte   # içeride: main'i import etmek müzik paketini yüklemesin
+    if isinstance(error, BaskaOrnekte):
+        return
+    # MüzikBaba ana botun komutlarını tanımaz; "Bunu mu demek istedin?" ile araya girmesin
+    if MUZIK_PROFILI and isinstance(error, commands.CommandNotFound):
+        return
     # Cooldown hatası
     if isinstance(error, commands.CommandOnCooldown):
         kalan_sure = int(error.retry_after)
@@ -190,7 +202,10 @@ async def on_command_error(ctx, error):
 @bot.tree.error
 async def on_tree_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     """Slash komutları için genel hata yakalayıcı."""
-    if isinstance(error, app_commands.CommandOnCooldown):
+    from cogs.muzik.ornekler import OrnekYonlendirme
+    if isinstance(error, OrnekYonlendirme):        # yanlış müzik botu seçildi → doğru botu söyle
+        mesaj = str(error)
+    elif isinstance(error, app_commands.CommandOnCooldown):
         kalan = int(error.retry_after)
         mesaj = _t("⏳ Yavaşla! Bu komut soğuma süresinde. **{kalan} saniye** sonra tekrar deneyebilirsin.", kalan=kalan)
     elif isinstance(error, app_commands.MissingPermissions):
@@ -254,7 +269,7 @@ def baslat():
 
     token = (os.getenv("DISCORD_TOKEN") or "").strip()
     if not token:
-        logger.critical(f"HATA: DISCORD_TOKEN boş! Bot token'ını {ENV_DOSYA} dosyasına yaz.")
+        logger.critical(f"HATA: DISCORD_TOKEN boş! Bot token'ını {PROFIL_ENV_DOSYA or ENV_DOSYA} dosyasına yaz.")
         sys.exit(YAPILANDIRMA_CIKIS_KODU)
     opsiyonel_anahtarlari_raporla()
 
@@ -266,7 +281,11 @@ def baslat():
         # Migrasyon geri alındı, DB değişmedi. Yeniden başlatma aynı hatayı verir (78 → systemd tekrar denemez).
         logger.critical(f"HATA: Ekonomi migrasyonu yapılamadı, bot başlatılmıyor: {e}")
         sys.exit(YAPILANDIRMA_CIKIS_KODU)
-    asyncio.run(main(token))
+    try:
+        asyncio.run(main(token))
+    except discord.PrivilegedIntentsRequired:
+        logger.critical("HATA: Discord Developer Portal → Bot → 'Server Members Intent' ve 'Message Content Intent' açık olmalı.")
+        sys.exit(YAPILANDIRMA_CIKIS_KODU)
     # Müzik: yt-dlp güncellendiyse bot.cikis_kodu = 75 → systemd (Restart=on-failure) yeni sürümle yeniden başlatır
     cikis_kodu = getattr(bot, 'cikis_kodu', 0)
     if cikis_kodu:

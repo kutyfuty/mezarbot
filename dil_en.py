@@ -1817,4 +1817,9 @@ EN = {
         "Help",
     "Oda oluştur":
         "Create room",
+    # ── cogs/muzik/ornekler.py ──
+    "🎧 Senin odanda **{bot}** çalıyor. Komutu ondan kullan: `/{komut}` yazınca listeden **{bot}**'u seç (ya da `!{komut}` yaz).":
+        "🎧 **{bot}** is playing in your channel. Use its command instead: type `/{komut}` and pick **{bot}** from the list (or type `!{komut}`).",
+    "🎶 Ben şu an **{kanal}** kanalında çalıyorum. Senin odan için **{bot}** boşta: `/{komut}` yazıp listeden **{bot}**'u seç (ya da `!{komut}` yaz, boştaki bot kendisi gelir).":
+        "🎶 I'm playing in **{kanal}** right now. **{bot}** is free for your channel: type `/{komut}` and pick **{bot}** (or type `!{komut}` and the free bot joins by itself).",
 }
