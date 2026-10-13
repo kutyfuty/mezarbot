@@ -584,6 +584,30 @@ async def durum_makinesi():
     oyn.durdur()
     kontrol(oyn.simdiki is None and oyn.kuyruk.bos_mu() and not vc.is_playing(), "durdur: kuyruk temiz, çalma durdu")
 
+    # Otomatik oynatma + elle eklenen şarkı: öneriler beklemez, çalan öneriyse hemen geçilir
+    from cogs.muzik.cog import Muzik
+    vc.kare_suresi = 0.02
+    oneri = Parca(sorgu=uzun, baslik="Öneri (çalıyor)", sure=120, otomatik=True)
+    oyn.kuyruk.toplu_ekle([oneri, Parca(sorgu=ton1, baslik="Öneri 2", sure=6, otomatik=True),
+                           Parca(sorgu=ton3, baslik="Öneri 3", sure=3, otomatik=True)])
+    await oyn.baslat_bossa()
+    await asyncio.sleep(0.3)
+    benim = Parca(sorgu=ton2, baslik="Benim şarkım", sure=4)
+    onune = Muzik._otomatik_oncesi(oyn)
+    kontrol(onune and oyn.kuyruk.bos_mu(), "şarkı eklenirken kuyruktaki otomatik öneriler çıkarıldı (atlamak gerekmez)")
+    oyn.kuyruk.toplu_ekle([benim])
+    await Muzik._ekleme_sonrasi(cog, oyn, 50, onune)
+    kontrol(await bekle(lambda: oyn.simdiki is benim), "otomatik öneri çalarken eklenen şarkı hemen çalmaya başladı")
+    kontrol(oyn.gecmis.son(1)[0].baslik == "Öneri (çalıyor)", "kesilen öneri geçmişte (önceki ile dönülebilir)")
+    oyn.kuyruk.ekle(Parca(sorgu=ton1, baslik="Öneri 4", sure=6, otomatik=True))
+    ikinci = Parca(sorgu=ton3, baslik="İkinci isteğim", sure=3)
+    onune = Muzik._otomatik_oncesi(oyn)
+    oyn.kuyruk.ekle(ikinci)
+    await Muzik._ekleme_sonrasi(cog, oyn, 50, onune)
+    kontrol(not onune and oyn.simdiki is benim and oyn.kuyruk.ilk() is ikinci and len(oyn.kuyruk) == 1,
+            "elle seçilen şarkı çalarken kesilmez; yeni istek önerilerin önünde, sıradaki")
+    oyn.durdur()
+
     # Gerçek zamanlı: sarma, filtre, ses (uzun dosya)
     vc.kare_suresi = 0.02
     pu = Parca(sorgu=uzun, baslik="Uzun", sure=120)

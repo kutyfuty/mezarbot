@@ -1822,4 +1822,9 @@ EN = {
         "🎧 **{bot}** is playing in your channel. Use its command instead: type `/{komut}` and pick **{bot}** from the list (or type `!{komut}`).",
     "🎶 Ben şu an **{kanal}** kanalında çalıyorum. Senin odan için **{bot}** boşta: `/{komut}` yazıp listeden **{bot}**'u seç (ya da `!{komut}` yaz, boştaki bot kendisi gelir).":
         "🎶 I'm playing in **{kanal}** right now. **{bot}** is free for your channel: type `/{komut}` and pick **{bot}** (or type `!{komut}` and the free bot joins by itself).",
+    # ── cogs/muzik/cog.py — otomatik öneriler elle eklenen şarkıya yol verir ──
+    "▶️ **Şimdi çalınıyor** — otomatik önerinin yerine":
+        "▶️ **Now playing** — instead of the autoplay pick",
+    "📻 Otomatik öneri yerine hemen senin listen başlıyor.":
+        "📻 Your songs start right away instead of the autoplay pick.",
 }
