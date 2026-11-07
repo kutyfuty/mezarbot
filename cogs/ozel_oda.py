@@ -65,11 +65,11 @@ API_ZAMAN_ASIMI = 15                        # sn — rate limit beklemesi etkile
 SABLON_ALANLARI = ("kullanici", "sayi")
 AYAR_ANAHTARLARI = {
     # anahtar: (görünen ad, eş anlamlılar)
-    'limit':   ("Varsayılan kişi limiti", ("limit", "kisi", "kişi")),
-    'sablon':  ("Ad şablonu", ("sablon", "şablon", "ad", "isim")),
-    'sure':    ("Boş oda silme süresi", ("sure", "süre", "silme", "gecikme")),
-    'maxoda':  ("Kişi başı en fazla oda", ("maxoda", "max", "odasayisi", "oda")),
-    'gizleme': ("Üyeler odasını gizleyebilir", ("gizleme", "gizle", "gizlilik")),
+    'limit':   ("Varsayılan kişi limiti", ("limit", "kisi", "kişi", "users")),
+    'sablon':  ("Ad şablonu", ("sablon", "şablon", "ad", "isim", "template", "name")),
+    'sure':    ("Boş oda silme süresi", ("sure", "süre", "silme", "gecikme", "timeout", "delay")),
+    'maxoda':  ("Kişi başı en fazla oda", ("maxoda", "max", "odasayisi", "oda", "maxrooms")),
+    'gizleme': ("Üyeler odasını gizleyebilir", ("gizleme", "gizle", "gizlilik", "hide", "privacy")),
 }
 
 # Bot yetkileri: (Permissions özniteliği, Türkçe ad)
@@ -134,7 +134,7 @@ def limit_dogrula(deger):
         sayi = deger
     else:
         metin = str(deger or "").strip().casefold()
-        if metin in ("sınırsız", "sinirsiz", "limitsiz", "yok", "kapat", "∞"):
+        if metin in ("sınırsız", "sinirsiz", "limitsiz", "yok", "kapat", "∞", "unlimited", "none", "off"):
             return 0
         if not re.fullmatch(r"[+-]?\d{1,4}", metin):
             raise ValueError(_t("Limit {LIMIT_MIN}-{LIMIT_MAX} arası bir sayı olmalı (0 = sınırsız).", LIMIT_MIN=LIMIT_MIN, LIMIT_MAX=LIMIT_MAX))
@@ -319,20 +319,22 @@ class OdaButonu(discord.ui.DynamicItem[discord.ui.Button],
             await _gizli_yanit(interaction, _t("⚠️ Bir hata oluştu, tekrar dene."))
 
 
-def oda_paneli_gorunumu(kanal_id, kilitli, gizli):
+def oda_paneli_gorunumu(kanal_id, kilitli, gizli, en=False):
     """Odanın o anki durumuna göre etiketlenmiş kalıcı panel görünümü."""
     S = discord.ButtonStyle
     v = discord.ui.View(timeout=None)
-    v.add_item(OdaButonu("kilit", kanal_id, _t("Aç") if kilitli else _t("Kilitle"), "🔓" if kilitli else "🔒",
+    lock_label = ("Unlock" if kilitli else "Lock") if en else (_t("Aç") if kilitli else _t("Kilitle"))
+    vis_label = ("Show" if gizli else "Hide") if en else (_t("Göster") if gizli else _t("Gizle"))
+    v.add_item(OdaButonu("kilit", kanal_id, lock_label, "🔓" if kilitli else "🔒",
                          S.success if kilitli else S.secondary, 0))
-    v.add_item(OdaButonu("gizlilik", kanal_id, _t("Göster") if gizli else _t("Gizle"), "👁️",
+    v.add_item(OdaButonu("gizlilik", kanal_id, vis_label, "👁️",
                          S.success if gizli else S.secondary, 0))
-    v.add_item(OdaButonu("limit", kanal_id, _t("Limit"), "👥", S.secondary, 0))
-    v.add_item(OdaButonu("ad", kanal_id, _t("Ad"), "✏️", S.secondary, 0))
-    v.add_item(OdaButonu("davet", kanal_id, _t("Davet"), "➕", S.primary, 1))
-    v.add_item(OdaButonu("at", kanal_id, _t("At"), "🚫", S.danger, 1))
-    v.add_item(OdaButonu("devret", kanal_id, _t("Devret"), "👑", S.secondary, 1))
-    v.add_item(OdaButonu("sahiplen", kanal_id, _t("Sahiplen"), "🙋", S.secondary, 1))
+    v.add_item(OdaButonu("limit", kanal_id, "Limit", "👥", S.secondary, 0))
+    v.add_item(OdaButonu("ad", kanal_id, "Name" if en else _t("Ad"), "✏️", S.secondary, 0))
+    v.add_item(OdaButonu("davet", kanal_id, "Invite" if en else _t("Davet"), "➕", S.primary, 1))
+    v.add_item(OdaButonu("at", kanal_id, "Kick" if en else _t("At"), "🚫", S.danger, 1))
+    v.add_item(OdaButonu("devret", kanal_id, "Transfer" if en else _t("Devret"), "👑", S.secondary, 1))
+    v.add_item(OdaButonu("sahiplen", kanal_id, "Claim" if en else _t("Sahiplen"), "🙋", S.secondary, 1))
     return v
 
 
@@ -341,8 +343,6 @@ class KurulumPaneli(discord.ui.View):
 
     def __init__(self):
         super().__init__(timeout=None)
-        for buton in self.children:   # etiketler gönderildiği sunucunun dilinde
-            buton.label = _t(buton.label)
 
     async def _yonlendir(self, interaction, eylem):
         cog = _cog(interaction)
@@ -350,15 +350,15 @@ class KurulumPaneli(discord.ui.View):
             return await _gizli_yanit(interaction, _t("⚠️ Özel oda sistemi şu an yüklü değil."))
         await cog.kurulum_paneli_etkilesimi(interaction, eylem)
 
-    @discord.ui.button(label="Oda oluştur", emoji="➕", style=discord.ButtonStyle.success, custom_id="ozeloda:kur:olustur")
+    @discord.ui.button(label="Oda Oluştur / Create Room", emoji="➕", style=discord.ButtonStyle.success, custom_id="ozeloda:kur:olustur")
     async def olustur(self, interaction, button):
         await self._yonlendir(interaction, "olustur")
 
-    @discord.ui.button(label="Odamı yönet", emoji="🎛️", style=discord.ButtonStyle.primary, custom_id="ozeloda:kur:yonet")
+    @discord.ui.button(label="Odamı Yönet / Manage Room", emoji="🎛️", style=discord.ButtonStyle.primary, custom_id="ozeloda:kur:yonet")
     async def yonet(self, interaction, button):
         await self._yonlendir(interaction, "yonet")
 
-    @discord.ui.button(label="Yardım", emoji="❔", style=discord.ButtonStyle.secondary, custom_id="ozeloda:kur:yardim")
+    @discord.ui.button(label="Yardım / Help", emoji="❔", style=discord.ButtonStyle.secondary, custom_id="ozeloda:kur:yardim")
     async def yardim(self, interaction, button):
         await self._yonlendir(interaction, "yardim")
 
@@ -791,21 +791,28 @@ class OzelOda(commands.Cog):
     def _kurulum_paneli_embedi(self, guild):
         ayar = odb.ayar_al(guild.id) or odb.VARSAYILAN_AYARLAR
         hub = guild.get_channel(ayar.get('hub_id') or 0)
-        e = discord.Embed(title=_t("🔊 Özel Ses Odaları"), color=Renkler.BILGI)
+        hub_mention = hub.mention if hub else f"**{HUB_ADI}**"
+        e = discord.Embed(title="🔊 Özel Ses Odaları / Custom Voice Rooms", color=Renkler.BILGI)
         e.description = (
-            _t("Kendine ait bir ses odası aç, istediğin kişileri çağır!\n"
-               "{AYIRICI}\n"
-               "**1.** {d3} ses kanalına gir → odan açılır ve oraya taşınırsın.\n"
-               "**2.** Odanın **sohbet** sekmesindeki panelden kilitle, gizle, limit koy, davet et, at…\n"
-               "**3.** Herkes çıkınca oda kendiliğinden silinir.\n"
-               "{AYIRICI}\n"
-               "Aşağıdaki butonlarla da oda açabilir, odanı yönetebilirsin. Komutlar: `/oda` ", AYIRICI=AYIRICI, d3=hub.mention if hub else f'**{HUB_ADI}**')
+            "Kendine ait bir ses odası aç, istediğin kişileri çağır!\n"
+            "Create your own private voice room and invite your friends!\n"
+            f"{AYIRICI}\n"
+            "🇹🇷 **Nasıl Kullanılır?**\n"
+            f"**1.** {hub_mention} kanalına gir veya aşağıdaki butona bas → odan anında açılır.\n"
+            "**2.** Odanın **sohbet** sekmesindeki panelden kilitle, gizle, limit koy, davet et…\n"
+            "**3.** Herkes çıkınca oda kendiliğinden silinir. Komutlar: `/oda`\n\n"
+            "🇬🇧 **How to Use?**\n"
+            f"**1.** Join {hub_mention} or click the button below → your room is created.\n"
+            "**2.** Use the control panel in your room's **chat** tab to lock, hide, set limits, invite…\n"
+            "**3.** The room deletes itself automatically when empty. Commands: `/room`\n"
+            f"{AYIRICI}"
         )
         limit = ayar['varsayilan_limit']
-        e.add_field(name=_t("👥 Varsayılan limit"), value=_t("Sınırsız") if not limit else _t("{limit} kişi", limit=limit), inline=True)
-        e.add_field(name=_t("⏱️ Boş oda silinir"), value=_t("{ayar} sn sonra", ayar=ayar['bos_silme_suresi']), inline=True)
-        e.add_field(name=_t("🏠 Kişi başı"), value=_t("{ayar} oda", ayar=ayar['kisi_basi_oda']), inline=True)
-        e.set_footer(text=_t("MezarBot • Özel Odalar"))
+        limit_val = "Sınırsız / Unlimited" if not limit else f"{limit} kişi / {limit} users"
+        e.add_field(name="👥 Limit / User Limit", value=limit_val, inline=True)
+        e.add_field(name="⏱️ Otomatik Silinme / Auto-Delete", value=f"{ayar['bos_silme_suresi']} sn / {ayar['bos_silme_suresi']}s", inline=True)
+        e.add_field(name="🏠 Kişi Başı / Per User", value=f"{ayar['kisi_basi_oda']} oda / room", inline=True)
+        e.set_footer(text="MezarBot • Özel Ses Odaları / Voice Rooms")
         return e
 
     async def _kurulumu_onar(self, guild, sebep):
@@ -991,14 +998,22 @@ class OzelOda(commands.Cog):
         logger.info(f"🔊 [{guild.id}] Oda oluşturuldu: {kanal.id} sahibi {uye.id}")
         return kanal, None
 
+    def _is_owner_en(self, kanal, oda):
+        owner = kanal.guild.get_member(oda['sahip_id'])
+        if owner and hasattr(owner, 'roles'):
+            if any(r.id == 1567279414981689545 for r in owner.roles):
+                return True
+        return False
+
     async def _paneli_gonder(self, kanal, sahip):
         """Kontrol panelini odanın ses kanalı sohbetine gönderir ve mesaj ID'sini kaydeder."""
         oda = odb.oda_al(kanal.id)
         if oda is None:
             return None
         kilitli, gizli = self._durum(kanal)
+        en = self._is_owner_en(kanal, oda)
         mesaj = await self._kanala_yaz(kanal, sahip.mention if sahip else None, embed=self._panel_embedi(kanal, oda),
-                                       view=oda_paneli_gorunumu(kanal.id, kilitli, gizli),
+                                       view=oda_paneli_gorunumu(kanal.id, kilitli, gizli, en=en),
                                        bahset=[sahip] if sahip else None)
         if mesaj is not None:
             odb.oda_guncelle(kanal.id, panel_mesaj_id=mesaj.id)
@@ -1007,6 +1022,23 @@ class OzelOda(commands.Cog):
     def _panel_embedi(self, kanal, oda):
         ayar = odb.ayar_al(kanal.guild.id) or odb.VARSAYILAN_AYARLAR
         kilitli, gizli = self._durum(kanal)
+        en = self._is_owner_en(kanal, oda)
+        if en:
+            e = discord.Embed(title="🎛️ Room Control Panel", color=Renkler.PREMIUM)
+            e.description = (f"{kanal.mention} · Owner: <@{oda['sahip_id']}>\n"
+                             "Only the room owner and server staff can use these buttons; responses are visible only to you.")
+            e.add_field(name="🔐 Access", value="🔒 Locked" if kilitli else "🔓 Open to all", inline=True)
+            e.add_field(name="👁️ Visibility", value="🙈 Hidden" if gizli else "👁️ Visible", inline=True)
+            limit_str = "Unlimited" if not kanal.user_limit else f"{kanal.user_limit} users"
+            e.add_field(name="👥 User Limit", value=limit_str, inline=True)
+            e.add_field(name="ℹ️ How to use?", inline=False, value=(
+                "➕ **Invite** — grant access to locked/hidden room · 🚫 **Kick** — disconnect & block\n"
+                "👑 **Transfer** — give ownership · 🙋 **Claim** — take over if owner left\n"
+                "Commands: `/room info`, `/room ban`, `/room unban` …"
+            ))
+            e.set_footer(text=f"Room is auto-deleted after {ayar['bos_silme_suresi']}s of being empty • MezarBot")
+            return e
+
         e = discord.Embed(title=_t("🎛️ Oda Kontrol Paneli"), color=Renkler.PREMIUM)
         e.description = (_t("{mention} · sahibi <@{oda}>\nButonları sadece oda sahibi ve sunucu yöneticileri kullanabilir; yanıtlar sadece sana görünür.", mention=kanal.mention, oda=oda['sahip_id']))
         e.add_field(name=_t("🔐 Erişim"), value=_t("🔒 Kilitli") if kilitli else _t("🔓 Herkese açık"), inline=True)
@@ -1024,9 +1056,10 @@ class OzelOda(commands.Cog):
         if not oda or not oda['panel_mesaj_id']:
             return
         kilitli, gizli = self._durum(kanal)
+        en = self._is_owner_en(kanal, oda)
         try:
             await _api(kanal.get_partial_message(oda['panel_mesaj_id']).edit(
-                embed=self._panel_embedi(kanal, oda), view=oda_paneli_gorunumu(kanal.id, kilitli, gizli)))
+                embed=self._panel_embedi(kanal, oda), view=oda_paneli_gorunumu(kanal.id, kilitli, gizli, en=en)))
         except discord.NotFound:
             odb.oda_guncelle(kanal.id, panel_mesaj_id=None)
         except (discord.HTTPException, asyncio.TimeoutError) as e:
@@ -1249,7 +1282,7 @@ class OzelOda(commands.Cog):
             raise OdaHatasi(_t("Oda sahibi ({mention}) hâlâ odada; ancak o devredebilir.", mention=sahip.mention))
         return await self.eylem_devret(kanal, uye, uye)
 
-    def bilgi_embedi(self, kanal, oda):
+    def bilgi_embedi(self, kanal, oda, en=False):
         kilitli, gizli = self._durum(kanal)
         davetli, yasakli = [], []
         for hedef, ow in kanal.overwrites.items():
@@ -1259,11 +1292,24 @@ class OzelOda(commands.Cog):
                 yasakli.append(f"<@{hedef.id}>")
             elif ow.connect:
                 davetli.append(f"<@{hedef.id}>")
+        if en:
+            e = discord.Embed(title=f"🔊 {escape_markdown(kanal.name)}", color=Renkler.BILGI)
+            e.add_field(name="👑 Owner", value=f"<@{oda['sahip_id']}>", inline=True)
+            e.add_field(name="🕒 Created", value=f"<t:{int(oda['olusturma'])}:R>", inline=True)
+            e.add_field(name="🎧 Inside", value=f"{len(_insanlar(kanal))} users", inline=True)
+            status_str = f"{'🔒 Locked' if kilitli else '🔓 Open'} · {'🙈 Hidden' if gizli else '👁️ Visible'}"
+            e.add_field(name="🔐 Status", value=status_str, inline=True)
+            limit_str = "Unlimited" if not kanal.user_limit else f"{kanal.user_limit} users"
+            e.add_field(name="👥 Limit", value=limit_str, inline=True)
+            e.add_field(name="➕ Invited", value=(" ".join(davetli[:20]) or "—")[:1024], inline=False)
+            e.add_field(name="⛔ Kicked / Banned", value=(" ".join(yasakli[:20]) or "—")[:1024], inline=False)
+            return e
+
         e = discord.Embed(title=f"🔊 {escape_markdown(kanal.name)}", color=Renkler.BILGI)
         e.add_field(name=_t("👑 Sahip"), value=f"<@{oda['sahip_id']}>", inline=True)
         e.add_field(name=_t("🕒 Açıldı"), value=f"<t:{int(oda['olusturma'])}:R>", inline=True)
         e.add_field(name=_t("🎧 İçeride"), value=_t("{len} kişi", len=len(_insanlar(kanal))), inline=True)
-        e.add_field(name=_t("🔐 Durum"), value=f"{_t("🔒 Kilitli") if kilitli else _t("🔓 Açık")} · {_t("🙈 Gizli") if gizli else _t("👁️ Görünür")}",
+        e.add_field(name=_t("🔐 Durum"), value=f"{_t('🔒 Kilitli') if kilitli else _t('🔓 Açık')} · {_t('🙈 Gizli') if gizli else _t('👁️ Görünür')}",
                     inline=True)
         e.add_field(name=_t("👥 Limit"), value=_t("Sınırsız") if not kanal.user_limit else _t("{user_limit} kişi", user_limit=kanal.user_limit), inline=True)
         e.add_field(name=_t("➕ Davetliler"), value=(" ".join(davetli[:20]) or "—")[:1024], inline=False)
@@ -1333,7 +1379,31 @@ class OzelOda(commands.Cog):
             return await self.eylem_devret(kanal, interaction.user, secilenler[0])
         await self._calistir(interaction, fabrika)
 
-    def _yardim_embedi(self):
+    def _is_interaction_en(self, interaction):
+        if getattr(interaction, "locale", None) and str(interaction.locale).startswith("en"):
+            return True
+        if interaction.guild and hasattr(interaction.user, "roles"):
+            if any(r.id == 1567279414981689545 for r in interaction.user.roles):
+                return True
+        return False
+
+    def _yardim_embedi(self, en=False):
+        if en:
+            e = discord.Embed(title="❔ Custom Rooms — Help & Commands", color=Renkler.BILGI)
+            e.description = (
+                "**Create a room:** Join the **➕ Create Room** voice channel or click the **➕ Create Room** button.\n"
+                "**Manage room:** Use the control panel in your room's **chat** tab, the **🎛️ Manage Room** button, or `/room` commands.\n"
+                f"{AYIRICI}\n"
+                "> `/room info` · `/room name` · `/room limit`\n"
+                "> `/room lock` · `/room unlock` · `/room hide` · `/room show`\n"
+                "> `/room invite` · `/room kick` · `/room ban` · `/room unban`\n"
+                "> `/room transfer` · `/room claim` · `/room panel`\n"
+                f"{AYIRICI}\n"
+                "• When the owner leaves, the room stays alive; someone inside can take over with **🙋 Claim**.\n"
+                "• The room is automatically deleted shortly after everyone leaves.\n"
+                "• Room names can be changed at most twice every 10 minutes due to Discord rate limits."
+            )
+            return e
         e = discord.Embed(title=_t("❔ Özel Odalar — Yardım"), color=Renkler.BILGI)
         e.description = (
             _t("**Oda açmak:** **{HUB_ADI}** ses kanalına gir ya da **➕ Oda oluştur** butonuna bas.\n"
@@ -1352,21 +1422,25 @@ class OzelOda(commands.Cog):
     async def kurulum_paneli_etkilesimi(self, interaction, eylem):
         if interaction.guild is None:
             return
+        en = self._is_interaction_en(interaction)
         if eylem == "yardim":
-            return await _gizli_yanit(interaction, embed=self._yardim_embedi())
+            return await _gizli_yanit(interaction, embed=self._yardim_embedi(en=en))
         if not odb.aktif_mi(interaction.guild.id):
-            return await _gizli_yanit(interaction, _t(KAPALI_MESAJI))
+            return await _gizli_yanit(interaction, "Voice room system is currently inactive." if en else _t(KAPALI_MESAJI))
         uye = interaction.user
         guild = interaction.guild
         if eylem == "yonet":
             odalar = self._gecerli_odalar(guild, uye.id)
             if not odalar:
-                return await _gizli_yanit(interaction, _t("Henüz bir odan yok. **➕ Oda oluştur** butonuna bas ya da **{HUB_ADI}** ses kanalına gir.", HUB_ADI=HUB_ADI))
+                msg = ("You don't have an active room yet. Click **➕ Create Room** or join the **➕ Create Room** voice channel."
+                       if en else
+                       _t("Henüz bir odan yok. **➕ Oda oluştur** butonuna bas ya da **{HUB_ADI}** ses kanalına gir.", HUB_ADI=HUB_ADI))
+                return await _gizli_yanit(interaction, msg)
             simdiki = uye.voice.channel if uye.voice else None
             kanal = simdiki if simdiki in odalar else odalar[-1]
             kilitli, gizli = self._durum(kanal)
-            return await _gizli_yanit(interaction, embed=self.bilgi_embedi(kanal, odb.oda_al(kanal.id)),
-                                      view=oda_paneli_gorunumu(kanal.id, kilitli, gizli))
+            return await _gizli_yanit(interaction, embed=self.bilgi_embedi(kanal, odb.oda_al(kanal.id), en=en),
+                                      view=oda_paneli_gorunumu(kanal.id, kilitli, gizli, en=en))
 
         async def olustur():
             ayar = odb.ayar_al(guild.id)
@@ -1374,10 +1448,12 @@ class OzelOda(commands.Cog):
             if len(odalar) >= ayar['kisi_basi_oda']:
                 if uye.voice is not None and uye.voice.channel not in odalar:
                     await self._tasi(uye, odalar[-1])
-                return _t("Zaten bir odan var 👉 {mention}", mention=odalar[-1].mention)
+                return (f"You already have a room 👉 {odalar[-1].mention}" if en else
+                        _t("Zaten bir odan var 👉 {mention}", mention=odalar[-1].mention))
             kalan = bekleme_kalan(self._son_olusturma.get((guild.id, uye.id)), time.monotonic())
             if kalan > 0:
-                raise OdaHatasi(_t("Yeni oda için **{d1} sn** bekle.", d1=int(kalan) + 1))
+                raise OdaHatasi(f"Please wait **{int(kalan) + 1}s** before creating another room." if en else
+                                _t("Yeni oda için **{d1} sn** bekle.", d1=int(kalan) + 1))
             seste = uye.voice is not None and uye.voice.channel is not None
             kanal, hata = await self._oda_olustur(uye, butondan=not seste)
             if kanal is None:
@@ -1385,8 +1461,10 @@ class OzelOda(commands.Cog):
             tasindi = seste and await self._tasi(uye, kanal)
             await self._paneli_gonder(kanal, uye)
             if tasindi:
-                return _t("✅ Odan hazır, seni taşıdım 👉 {mention}", mention=kanal.mention)
-            return (_t("✅ Odan hazır 👉 {mention}\nİçine gir; kimse girmezse {d3} dakika sonra kendiliğinden silinir.", mention=kanal.mention, d3=BUTON_ODA_EK_SURE // 60))
+                return (f"✅ Your room is ready, I moved you in 👉 {kanal.mention}" if en else
+                        _t("✅ Odan hazır, seni taşıdım 👉 {mention}", mention=kanal.mention))
+            return (f"✅ Your room is ready 👉 {kanal.mention}\nJoin within {BUTON_ODA_EK_SURE // 60} minutes or it will be deleted automatically." if en else
+                    _t("✅ Odan hazır 👉 {mention}\nİçine gir; kimse girmezse {d3} dakika sonra kendiliğinden silinir.", mention=kanal.mention, d3=BUTON_ODA_EK_SURE // 60))
         await self._calistir(interaction, olustur)
 
     # ── Komut yardımcıları ────────────────────────
@@ -1443,7 +1521,7 @@ class OzelOda(commands.Cog):
 
     # ── Yönetici komutları ────────────────────────
 
-    @commands.hybrid_command(name="ozelodaaktif", aliases=["özelodaaktif", "ozelodaac", "özelodaaç"],
+    @commands.hybrid_command(name="ozelodaaktif", aliases=["özelodaaktif", "ozelodaac", "özelodaaç", "vcsetup", "privateroomson"],
                              description="Özel ses odası sistemini bu sunucuda açar ve kanallarını kurar/onarır")
     @app_commands.default_permissions(manage_guild=True)
     @commands.guild_only()
@@ -1482,7 +1560,7 @@ class OzelOda(commands.Cog):
         logger.info(f"🔊 [{guild.id}] Özel oda sistemi açıldı/onarıldı ({ctx.author.id})")
         await self._yanit(ctx, embed=e, sure=120)
 
-    @commands.hybrid_command(name="ozelodakapat", aliases=["özelodakapat"],
+    @commands.hybrid_command(name="ozelodakapat", aliases=["özelodakapat", "vcdisable", "privateroomsoff"],
                              description="Özel ses odası sistemini kapatır ve kanallarını kaldırır")
     @app_commands.default_permissions(manage_guild=True)
     @commands.guild_only()
@@ -1512,7 +1590,7 @@ class OzelOda(commands.Cog):
         logger.info(f"🔊 [{guild.id}] Kapatan: {ctx.author.id}")
         await self._yanit(ctx, metin, sure=60)
 
-    @commands.hybrid_group(name="ozeloda", aliases=["özeloda"], fallback="durum", invoke_without_command=True,
+    @commands.hybrid_group(name="ozeloda", aliases=["özeloda", "vcadmin", "privaterooms"], fallback="durum", invoke_without_command=True,
                            description="Özel oda sisteminin durumu ve ayarları (yönetici)")
     @app_commands.default_permissions(manage_guild=True)
     @commands.guild_only()
@@ -1544,7 +1622,7 @@ class OzelOda(commands.Cog):
                    "`maxoda` Kişi başı oda: **{ayar2}**\n"
                    "`gizleme` Üyeler gizleyebilir: **{d9}**", d1=_t("Sınırsız") if not ayar['varsayilan_limit'] else ayar['varsayilan_limit'], escape_markdown=escape_markdown(ayar['ad_sablonu']), ayar=ayar['bos_silme_suresi'], ayar2=ayar['kisi_basi_oda'], d9=_t("Evet") if ayar['gizlemeye_izin'] else _t("Hayır")))
 
-    @ozeloda.command(name="ayar", description="Özel oda varsayılanlarını değiştirir (boş: gösterir)")
+    @ozeloda.command(name="ayar", aliases=["config", "set"], description="Özel oda varsayılanlarını değiştirir (boş: gösterir)")
     @app_commands.describe(anahtar="Değiştirilecek ayar", deger="Yeni değer (ör. 5, 🔊 {kullanici} odası, 30, 1, evet)")
     @app_commands.choices(anahtar=[app_commands.Choice(name=ad, value=k) for k, (ad, _) in AYAR_ANAHTARLARI.items()])
     @commands.check(yonetici_kontrol)
@@ -1588,7 +1666,7 @@ class OzelOda(commands.Cog):
 
     # ── Oda sahibi komutları ──────────────────────
 
-    @commands.hybrid_group(name="oda", fallback="bilgi", invoke_without_command=True,
+    @commands.hybrid_group(name="oda", aliases=["room", "vc"], fallback="bilgi", invoke_without_command=True,
                            description="Özel ses odanın bilgisi ve yönetimi")
     @commands.guild_only()
     async def oda(self, ctx):
@@ -1597,7 +1675,7 @@ class OzelOda(commands.Cog):
     async def _bilgi(self, kanal, oda):
         return self.bilgi_embedi(kanal, oda)
 
-    @oda.command(name="ad", aliases=["isim"], description="Odanın adını değiştirir (en fazla 50 karakter)")
+    @oda.command(name="ad", aliases=["isim", "name", "rename"], description="Odanın adını değiştirir (en fazla 50 karakter)")
     @app_commands.describe(ad="Yeni oda adı")
     async def oda_ad(self, ctx, *, ad: str):
         await self._komut(ctx, lambda kanal, oda: self.eylem_ad(kanal, ctx.author, ad))
@@ -1607,48 +1685,48 @@ class OzelOda(commands.Cog):
     async def oda_limit(self, ctx, limit: str):
         await self._komut(ctx, lambda kanal, oda: self.eylem_limit(kanal, ctx.author, limit))
 
-    @oda.command(name="kilitle", description="Odayı kilitler: sadece davet ettiklerin girebilir")
+    @oda.command(name="kilitle", aliases=["lock"], description="Odayı kilitler: sadece davet ettiklerin girebilir")
     async def oda_kilitle(self, ctx):
         await self._komut(ctx, lambda kanal, oda: self.eylem_kilit(kanal, ctx.author, True))
 
-    @oda.command(name="ac", aliases=["aç"], description="Odanın kilidini açar: herkes girebilir")
+    @oda.command(name="ac", aliases=["aç", "unlock", "open"], description="Odanın kilidini açar: herkes girebilir")
     async def oda_ac(self, ctx):
         await self._komut(ctx, lambda kanal, oda: self.eylem_kilit(kanal, ctx.author, False))
 
-    @oda.command(name="gizle", description="Odayı gizler: sadece davetliler görebilir")
+    @oda.command(name="gizle", aliases=["hide"], description="Odayı gizler: sadece davetliler görebilir")
     async def oda_gizle(self, ctx):
         await self._komut(ctx, lambda kanal, oda: self.eylem_gizlilik(kanal, ctx.author, True))
 
-    @oda.command(name="goster", aliases=["göster"], description="Odayı tekrar herkese görünür yapar")
+    @oda.command(name="goster", aliases=["göster", "show", "unhide"], description="Odayı tekrar herkese görünür yapar")
     async def oda_goster(self, ctx):
         await self._komut(ctx, lambda kanal, oda: self.eylem_gizlilik(kanal, ctx.author, False))
 
-    @oda.command(name="davet", description="Üyeyi odana davet eder (kilitli/gizli odaya girebilir)")
+    @oda.command(name="davet", aliases=["invite", "allow"], description="Üyeyi odana davet eder (kilitli/gizli odaya girebilir)")
     @app_commands.describe(uye="Davet edilecek üye")
     async def oda_davet(self, ctx, uye: discord.Member):
         await self._komut(ctx, lambda kanal, oda: self.eylem_davet(kanal, ctx.author, [uye]))
 
-    @oda.command(name="at", description="Üyeyi odadan atar ve tekrar girmesini engeller")
+    @oda.command(name="at", aliases=["kick"], description="Üyeyi odadan atar ve tekrar girmesini engeller")
     @app_commands.describe(uye="Atılacak üye")
     async def oda_at(self, ctx, uye: discord.Member):
         await self._komut(ctx, lambda kanal, oda: self.eylem_at(kanal, ctx.author, [uye]))
 
-    @oda.command(name="yasakla", description="Üyeyi odadan atar; odayı göremez ve giremez")
+    @oda.command(name="yasakla", aliases=["ban", "block"], description="Üyeyi odadan atar; odayı göremez ve giremez")
     @app_commands.describe(uye="Yasaklanacak üye")
     async def oda_yasakla(self, ctx, uye: discord.Member):
         await self._komut(ctx, lambda kanal, oda: self.eylem_at(kanal, ctx.author, [uye], yasakla=True))
 
-    @oda.command(name="yasak-kaldir", aliases=["yasakkaldir", "yasakkaldır"], description="Üyenin oda yasağını kaldırır")
+    @oda.command(name="yasak-kaldir", aliases=["yasakkaldir", "yasakkaldır", "unban", "unblock"], description="Üyenin oda yasağını kaldırır")
     @app_commands.describe(uye="Yasağı kaldırılacak üye")
     async def oda_yasak_kaldir(self, ctx, uye: discord.Member):
         await self._komut(ctx, lambda kanal, oda: self.eylem_yasak_kaldir(kanal, ctx.author, uye))
 
-    @oda.command(name="devret", description="Oda sahipliğini başka bir üyeye verir")
+    @oda.command(name="devret", aliases=["transfer", "owner"], description="Oda sahipliğini başka bir üyeye verir")
     @app_commands.describe(uye="Yeni oda sahibi")
     async def oda_devret(self, ctx, uye: discord.Member):
         await self._komut(ctx, lambda kanal, oda: self.eylem_devret(kanal, ctx.author, uye))
 
-    @oda.command(name="sahiplen", description="Sahibi odada değilse odayı devralırsın (odada olmalısın)")
+    @oda.command(name="sahiplen", aliases=["claim"], description="Sahibi odada değilse odayı devralırsın (odada olmalısın)")
     async def oda_sahiplen(self, ctx):
         await self._komut(ctx, lambda kanal, oda: self.eylem_sahiplen(kanal, ctx.author), sahip_gerekli=False)
 
