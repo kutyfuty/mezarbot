@@ -1,0 +1,47 @@
+[Unit]
+Description=MezarMember — Mezar Cafe Topluluk ve Mezarpoly Botu (aynı kod, MEZARBOT_PROFIL=member)
+Wants=network-online.target
+After=network-online.target mezar-mezarbot.service
+
+[Service]
+Type=simple
+User=kutay
+Group=kutay
+WorkingDirectory=/opt/mezarnet/mezarbot
+ExecStart=/opt/mezarnet/mezarbot/venv/bin/python main.py
+Environment=PYTHONUNBUFFERED=1
+Environment=MEZARBOT_PROFIL=member
+Environment=PATH=/opt/node20/bin:/usr/local/bin:/usr/bin
+Environment=HOME=/opt/mezarnet/mezarbot/data
+Environment=XDG_CACHE_HOME=/opt/mezarnet/mezarbot/data/.cache
+Environment=TMPDIR=/opt/mezarnet/mezarbot/data/tmp
+
+Restart=on-failure
+RestartSec=10
+RestartPreventExitStatus=3 78
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Sıkılaştırma
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/opt/mezarnet/mezarbot
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

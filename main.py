@@ -20,7 +20,10 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from yapilandirma import EK_COGLAR, ENV_DOSYA, GECICI_DIZIN, KILIT_DOSYA, LOG_DOSYA, MUZIK_PROFILI, PREFIX, PROFIL_ENV_DOSYA, SAHIP_ID
+from yapilandirma import (
+    EK_COGLAR, ENV_DOSYA, GECICI_DIZIN, KILIT_DOSYA, LOG_DOSYA,
+    MEMBER_PROFILI, MUZIK_PROFILI, PREFIX, PROFIL_ENV_DOSYA, SAHIP_ID
+)
 from database import EkonomiMigrasyonHatasi, veritabanini_kur
 from dil import DilAgaci, DilCevirmeni, _t, kancalari_kur
 
@@ -39,8 +42,7 @@ _kilit_dosyasi = None  # süreç boyunca açık kalmalı: flock bu dosya tanıt�
 
 # Opsiyonel anahtarlar: boşsa ilgili özellik devre dışı kalır, bot çalışmaya devam eder
 OPSIYONEL_ANAHTARLAR = (
-    ("GROQ_API_KEY", "AI sohbet (@MezarBot) + !ciz prompt çevirisi"),
-    ("REPLICATE_API_TOKEN", "!ciz resim çizimi"),
+    ("GROQ_API_KEY", "AI sohbet (@MezarBot)"),
     ("SPOTIFY_CLIENT_ID", "Spotify API (yoksa Spotify linkleri embed sayfasından çözülür)"),
     ("SPOTIFY_CLIENT_SECRET", "Spotify API"),
 )
@@ -51,11 +53,13 @@ def opsiyonel_anahtarlari_raporla():
     for anahtar, ozellik in OPSIYONEL_ANAHTARLAR:
         if MUZIK_PROFILI and not anahtar.startswith("SPOTIFY"):
             continue   # MüzikBaba yalnızca müzik çalar
+        if MEMBER_PROFILI:
+            continue   # MezarMember yalnızca topluluk ve Mezarpoly yönetir
         if (os.getenv(anahtar) or "").strip():
             logger.info(f"🔑 {anahtar} ayarlı → {ozellik}: aktif")
         else:
             logger.warning(f"🔑 {anahtar} boş → {ozellik}: devre dışı")
-    if not MUZIK_PROFILI and (os.getenv("HUGGINGFACE_TOKEN") or "").strip():
+    if not (MUZIK_PROFILI or MEMBER_PROFILI) and (os.getenv("HUGGINGFACE_TOKEN") or "").strip():
         logger.info("🔑 HUGGINGFACE_TOKEN ayarlı ama şu an hiçbir özellik kullanmıyor.")
 
 
@@ -108,15 +112,20 @@ bot = commands.Bot(command_prefix=PREFIX, intents=intents, help_command=None, ow
                    chunk_guilds_at_startup=False, tree_cls=DilAgaci)
 
 # Yüklenecek Vagonlar
-vagonlar = [
-    'cogs.yonetim', 'cogs.yapayzeka', 'cogs.muzik', 'cogs.yardim',
-    'cogs.konusma', 'cogs.ses_aktivite', 'cogs.durum_rotator',
-    'cogs.ozel_oda', 'cogs.sunucu_onay', 'cogs.ceviri'
-]
-vagonlar += [c for c in EK_COGLAR if c not in vagonlar]   # config.json → ek_coglar (kuruluma özel)
 if MUZIK_PROFILI:
     # İkinci bot hesabı (MüzikBaba): yalnızca müzik. Ana botla aynı sunucuda başka bir ses kanalında çalar.
     vagonlar = ['cogs.muzik', 'cogs.muzikbaba']
+elif MEMBER_PROFILI:
+    # Mezar Cafe Topluluk & Mezarpoly bot hesabı (MezarMember): hesap eşleme, roller, destek/ticket
+    vagonlar = ['cogs.mezarpoly', 'cogs.destek', 'cogs.yonetim']
+else:
+    # Klasik MezarBot: genel çok sunuculu müzik, ses odası ve topluluk botu
+    vagonlar = [
+        'cogs.yonetim', 'cogs.yapayzeka', 'cogs.muzik', 'cogs.yardim',
+        'cogs.ses_aktivite', 'cogs.durum_rotator',
+        'cogs.ozel_oda', 'cogs.sunucu_onay'
+    ]
+    vagonlar += [c for c in EK_COGLAR if c not in vagonlar]   # config.json → ek_coglar (kuruluma özel)
 
 
 @bot.event

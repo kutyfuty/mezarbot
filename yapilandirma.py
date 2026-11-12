@@ -18,21 +18,33 @@ from dotenv import load_dotenv
 logger = logging.getLogger('MezarBot.Yapilandirma')
 
 # ── Profil ──
-# MEZARBOT_PROFIL=muzik → aynı kodla yalnızca müzik çalan ikinci bot hesabı (ör. MüzikBaba). Kendi token'ı
-# (.env.muzikbaba), kilidi, log'u ve veritabanı (data/muzikbaba.db) olur; ana botla çakışmaz. Bkz. cogs/muzik/ornekler.py
+# MEZARBOT_PROFIL=muzik → yalnızca müzik çalan ikinci bot (MüzikBaba, .env.muzikbaba).
+# MEZARBOT_PROFIL=member → Mezar Cafe topluluk, rol ve destek botu (MezarMember, .env.mezarmember).
+# Tanımsız veya boş → Klasik çok sunuculu MezarBot (.env).
 PROFIL = (os.getenv("MEZARBOT_PROFIL") or "").strip().lower()
 MUZIK_PROFILI = PROFIL == "muzik"
+MEMBER_PROFILI = PROFIL in ("member", "mezarmember")
 
 # ── Yollar ──
 BOT_DIZINI = os.path.dirname(os.path.abspath(__file__))
 ENV_DOSYA = os.path.join(BOT_DIZINI, ".env")
-PROFIL_ENV_DOSYA = os.path.join(BOT_DIZINI, ".env.muzikbaba") if MUZIK_PROFILI else None
+if MUZIK_PROFILI:
+    PROFIL_ENV_DOSYA = os.path.join(BOT_DIZINI, ".env.muzikbaba")
+    LOG_DOSYA = os.path.join(BOT_DIZINI, "muzikbaba.log")
+    KILIT_DOSYA = os.path.join(BOT_DIZINI, "muzikbaba.lock")
+elif MEMBER_PROFILI:
+    PROFIL_ENV_DOSYA = os.path.join(BOT_DIZINI, ".env.mezarmember")
+    LOG_DOSYA = os.path.join(BOT_DIZINI, "mezarmember.log")
+    KILIT_DOSYA = os.path.join(BOT_DIZINI, "mezarmember.lock")
+else:
+    PROFIL_ENV_DOSYA = None
+    LOG_DOSYA = os.path.join(BOT_DIZINI, "mezarbot.log")
+    KILIT_DOSYA = os.path.join(BOT_DIZINI, "bot.lock")
+
 CONFIG_DOSYA = os.path.join(BOT_DIZINI, "config.json")
 VERI_DIZINI = os.path.join(BOT_DIZINI, "data")
 GECICI_DIZIN = os.path.join(VERI_DIZINI, "tmp")            # TTS mp3 vb. geçici dosyalar
 YTDL_CACHE_DIZINI = os.path.join(VERI_DIZINI, ".ytdl_cache")
-LOG_DOSYA = os.path.join(BOT_DIZINI, "muzikbaba.log" if MUZIK_PROFILI else "mezarbot.log")
-KILIT_DOSYA = os.path.join(BOT_DIZINI, "muzikbaba.lock" if MUZIK_PROFILI else "bot.lock")
 
 # .env'yi bot dizininden yükle (CWD'den değil). Ortamda zaten tanımlı değişkenleri ezmez.
 # Müzik profilinde önce kendi dosyası yüklenir (DISCORD_TOKEN oradan gelir); ortak anahtarlar (Spotify vb.) .env'den.
@@ -41,7 +53,12 @@ if PROFIL_ENV_DOSYA:
 load_dotenv(ENV_DOSYA, override=False)
 
 # Veritabanı yolu. MEZARBOT_DB ortam değişkeni sadece test/araç amaçlıdır (ör. geçici kopya).
-_VARSAYILAN_DB = os.path.join(VERI_DIZINI, "muzikbaba.db") if MUZIK_PROFILI else os.path.join(BOT_DIZINI, "mezarbot.db")
+if MUZIK_PROFILI:
+    _VARSAYILAN_DB = os.path.join(VERI_DIZINI, "muzikbaba.db")
+elif MEMBER_PROFILI:
+    _VARSAYILAN_DB = os.path.join(VERI_DIZINI, "mezarmember.db")
+else:
+    _VARSAYILAN_DB = os.path.join(BOT_DIZINI, "mezarbot.db")
 DB_DOSYA = os.path.abspath(os.getenv("MEZARBOT_DB") or _VARSAYILAN_DB)
 
 
