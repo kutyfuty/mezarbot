@@ -24,19 +24,18 @@ import discord
 from discord import app_commands
 
 from dil_en import EN
+from yapilandirma import MEMBER_PROFILI
 
 logger = logging.getLogger('MezarBot.Dil')
 
 DILLER = ("tr", "en")
-_aktif = contextvars.ContextVar("mezarbot_dil", default="tr")
+_aktif = contextvars.ContextVar("mezarbot_dil", default="en" if MEMBER_PROFILI else "tr")
 
 
 def _sunucu_dili(guild_id):
-    from database import sunucu_dil_al   # döngüsel import olmasın diye geç
-    try:
-        return sunucu_dil_al(guild_id) if guild_id else "tr"
-    except Exception:   # cache henüz yüklenmemiş vb. — varsayılan Türkçe
-        return "tr"
+    if MEMBER_PROFILI:
+        return "en"
+    return "tr"
 
 
 def _guild_id(nesne):
@@ -103,8 +102,8 @@ class DilAgaci(app_commands.CommandTree):
 
 
 class DilCevirmeni(app_commands.Translator):
-    """Slash komut/grup/parametre açıklamaları ve seçenek adları → Discord'u İngilizce kullananlara İngilizce.
-    Komut ve parametre ADLARI çevrilmez (Türkçe kalır; prefix komutlarda İngilizce takma adlar var)."""
+    """Slash komut/grup/parametre açıklamaları ve seçenek adları → MezarMember profilinde İngilizce.
+    Klasik MezarBot'ta tamamen Türkçe kalır."""
 
     _YERLER = {app_commands.TranslationContextLocation.command_description,
                app_commands.TranslationContextLocation.group_description,
@@ -112,7 +111,10 @@ class DilCevirmeni(app_commands.Translator):
                app_commands.TranslationContextLocation.choice_name}
 
     async def translate(self, string, locale, context):
-        if context.location not in self._YERLER or not str(locale).startswith("en"):
+        if not MEMBER_PROFILI:
+            # Klasik MezarBot tamamen Türkçe kalır, İngilizceye çevrilmez
+            return None
+        if context.location not in self._YERLER:
             return None
         return EN.get(string.message)
 

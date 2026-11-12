@@ -116,8 +116,8 @@ if MUZIK_PROFILI:
     # İkinci bot hesabı (MüzikBaba): yalnızca müzik. Ana botla aynı sunucuda başka bir ses kanalında çalar.
     vagonlar = ['cogs.muzik', 'cogs.muzikbaba']
 elif MEMBER_PROFILI:
-    # Mezar Cafe Topluluk & Mezarpoly bot hesabı (MezarMember): hesap eşleme, roller, destek/ticket
-    vagonlar = ['cogs.mezarpoly', 'cogs.destek', 'cogs.yonetim']
+    # Mezar Cafe Topluluk & Mezarpoly bot hesabı (MezarMember): hesap eşleme, roller, destek/ticket ve İngilizce müzik
+    vagonlar = ['cogs.mezarpoly', 'cogs.destek', 'cogs.yonetim', 'cogs.muzik']
 else:
     # Klasik MezarBot: genel çok sunuculu müzik, ses odası ve topluluk botu
     vagonlar = [
