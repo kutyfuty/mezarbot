@@ -140,14 +140,6 @@ Komutların çoğu hem `/` (slash) hem de `!` (önek) ile kullanılabilir; alt k
 | `/help` | View MezarBot command guide and help menu |
 | `/yardim` | MezarBot komut rehberini gösterir / View command guide |
 
-## 🚪 Üye onay kapısı (opsiyonel, config ile açılır)
-
-| Komut | Açıklama |
-|---|---|
-| `/dilpaneli` | 🚪・giris kanalındaki dil seçim panelini yeniden gönderir |
-| `/onayla` | Onay bekleyen bir üyeyi onaylayıp kanalları açar |
-| `/reddet` | Onay bekleyen bir üyeyi reddeder ve sunucudan atar |
-
 ## Mesaj tepkileri
 
 - Bir mesaja 🇬🇧 / 🇺🇸 tepkisi → İngilizce çeviri, 🇹🇷 → Türkçe çeviri (Groq).

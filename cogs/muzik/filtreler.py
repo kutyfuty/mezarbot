@@ -119,13 +119,16 @@ def secenek_uygula(durum, anahtar, deger=None):
         return f"Bassboost: {BAS_SEVIYELERI[durum.bas][0]}"
     if anahtar in PERDE_EFEKTLERI:
         durum.perde = "" if durum.perde == anahtar else anahtar
-        return f"{PERDE_EFEKTLERI[anahtar][0]}: {_t("açık") if durum.perde else _t("kapalı")}"
+        acik_mi = _t("açık") if durum.perde else _t("kapalı")
+        return f"{PERDE_EFEKTLERI[anahtar][0]}: {acik_mi}"
     if anahtar == "8d":
         durum.sekiz_d = not durum.sekiz_d
-        return f"8D: {_t("açık") if durum.sekiz_d else _t("kapalı")}"
+        acik_mi = _t("açık") if durum.sekiz_d else _t("kapalı")
+        return f"8D: {acik_mi}"
     if anahtar == "karaoke":
         durum.karaoke = not durum.karaoke
-        return f"Karaoke: {_t("açık") if durum.karaoke else _t("kapalı")}"
+        acik_mi = _t("açık") if durum.karaoke else _t("kapalı")
+        return f"Karaoke: {acik_mi}"
     if anahtar in ("hizlandir", "yavaslat", "hiz"):
         if deger is None:
             hedef = 1.25 if anahtar == "hizlandir" else 0.8 if anahtar == "yavaslat" else 1.0

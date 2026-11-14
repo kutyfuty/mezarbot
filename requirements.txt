@@ -1,8 +1,8 @@
 # MezarBot bağımlılıkları (Python >= 3.11; üretimde 3.14 ile çalışıyor)
 # Birebir sürümler için: requirements.lock (venv'den pip freeze)
 discord.py[voice]>=2.7.1,<3
-# DAVE (ses uçtan uca şifreleme): discord.py 2.7+ sese bağlanmak için ZORUNLU; Discord 2 Mart 2026'dan beri E2EE'siz sesi reddeder
-davey>=0.1.6
+# DAVE (ses uçtan uca şifreleme): discord.py 2.7+ sese bağlanmak için ZORUNLU; 0.2.x prepare_transition() API değişikliği discord.py 2.7.1 ile uyumsuz (sessiz ses)
+davey>=0.1.6,<0.2
 audioop-lts>=0.2.1; python_version >= "3.13"
 # [default] → yt-dlp-ejs (YouTube JS çözücü, yt-dlp sürümüne sabitli). Müzik cog'u haftalık günceller.
 yt-dlp[default]>=2026.8.19

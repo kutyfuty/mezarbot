@@ -29,8 +29,8 @@ ESZAMANLI_CIKARMA = 3
 ISCI_SAYISI = 2
 TEK_ZAMAN_ASIMI = 30       # tek parça tam çıkarma (sn)
 ARAMA_ZAMAN_ASIMI = 20
-# YouTube "bot doğrulaması" önlemleri: PO token gerektirmeyen yedek istemciler + istek ritmi
-YT_ISTEMCI_YEDEKLERI = ("web_embedded", "tv")
+# YouTube "bot doğrulaması" / 403 yedek istemcileri (ilki Opus 251 desteklemeli — testlerde copy ile denenir)
+YT_ISTEMCI_YEDEKLERI = ("visionos", "tv_simply", "web_embedded")
 YT_MIN_ARALIK = 1.5        # ardışık YouTube isteklerinin başlangıcı arası en az (sn)
 BOT_SOGUMA = 20            # tüm istemciler bot doğrulamasına takılırsa YouTube isteklerini bu kadar yavaşlat (sn)
 SC_ADAY_SAYISI = 8         # SoundCloud yedeğinde aranan aday
@@ -70,6 +70,8 @@ ydl_opts = {
     'format': 'bestaudio[acodec=opus]/bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio/best',
     'noplaylist': True,
 }
+# YouTube DASH ses (251/140) sunucu IP'sinde 403 verirse kademeli yedek format (360p MP4 / HLS → FFmpeg -vn)
+YT_YEDEK_FORMAT = '18/best[protocol^=m3u8][acodec!=none]/best[acodec!=none]/best'
 # Playlist / arama: sadece liste bilgisi (her video için ayrı istek YOK → hızlı)
 ydl_playlist_opts = {
     **_YTDL_TEMEL,
@@ -77,6 +79,17 @@ ydl_playlist_opts = {
     'noplaylist': False,
     'ignoreerrors': True,
 }
+
+
+def _ydl_secenekler(istemci=None, yedek_format=False):
+    secenek = {**ydl_opts, 'format': YT_YEDEK_FORMAT} if yedek_format else dict(ydl_opts)
+    if istemci:
+        secenek['extractor_args'] = {'youtube': {'player_client': [istemci]}}
+    elif not _COOKIE_YOLU:
+        # Çerezsiz ortamda yt-dlp varsayılanı (tv_samsung) DASH/18 URL'lerinde 403 döndürebilir;
+        # visionos doğrudan Opus 251 (canlıda m3u8), tv_simply yedekte 18/HLS sağlar.
+        secenek['extractor_args'] = {'youtube': {'player_client': ['tv_simply', 'visionos'] if yedek_format else ['visionos', 'tv_simply']}}
+    return secenek
 
 # ── URL kalıpları ──
 SPOTIFY_REGEX = re.compile(
@@ -441,6 +454,11 @@ class Cozucu:
         self._sp_kapali_bitis = 0.0     # Spotify API 403/429 verirse bir süre embed'e geç
         self._oturum = None
         self._yt_sonraki = 0.0          # bir sonraki YouTube isteğinin en erken başlama zamanı (monotonic)
+        self._yt_yedek_format_son = 0.0 # YouTube DASH ses 403 verirse bir süre doğrudan 18/HLS seç (monotonic)
+
+    def yedek_formata_gec(self, sure=900):
+        """FFmpeg YouTube DASH ses akışında (251/140) 403 aldığında bir süre 18/HLS formatını seçer."""
+        self._yt_yedek_format_son = max(self._yt_yedek_format_son, time.monotonic() + sure)
 
     async def kapat(self):
         await self.havuz.kapat()
@@ -489,19 +507,22 @@ class Cozucu:
         return None
 
     # ── Tam çözüm (akış URL'si) ──
-    async def coz(self, parca, zorla=False, istemci=None):
+    async def coz(self, parca, zorla=False, istemci=None, yedek_format=False):
         """Parca'nın akış URL'sini doldurur. Arama sorgularında (Spotify eşleşmesi dahil) en iyi adayı seçer,
         kısıtlı videolarda sıradaki adayı dener. Başarısızsa CozmeHatasi.
-        istemci: YouTube player_client (ör. varsayılan istemcinin URL'si 403 verdiyse yedek istemci)."""
+        istemci: YouTube player_client (ör. varsayılan istemcinin URL'si 403 verdiyse yedek istemci).
+        yedek_format: DASH ses 403 verdiyse 18/HLS formatını önceliklendir."""
         if not zorla and parca.akis_gecerli_mi():
             return parca
+        yedek_fmt = yedek_format or time.monotonic() < self._yt_yedek_format_son
         denenen = set()
         son_hata = None
         try:
             hedef = parca.sorgu
             if hedef.startswith(('ytsearch', 'scsearch')):
                 hedef = await self._aramadan_hedef(parca, denenen)
-            secenek = {**ydl_opts, 'extractor_args': {'youtube': {'player_client': [istemci]}}} if istemci else ydl_opts
+            yt_yedek = yedek_fmt and bool(YT_HOST_REGEX.match(hedef))
+            secenek = _ydl_secenekler(istemci, yt_yedek)
             bot_denemesi = 0
             for deneme in range(1 + len(YT_ISTEMCI_YEDEKLERI)):
                 try:
@@ -517,12 +538,14 @@ class Cozucu:
                     if son_hata.kalici and aranabilir:
                         denenen.add(youtube_video_id(hedef) or hedef)
                         hedef = await self._aramadan_hedef(parca, denenen)
+                        yt_yedek = yedek_fmt and bool(YT_HOST_REGEX.match(hedef))
+                        secenek = _ydl_secenekler(istemci, yt_yedek)
                         continue
                     if _bot_hatasi(son_hata) and bot_denemesi < len(YT_ISTEMCI_YEDEKLERI):
                         istemci = YT_ISTEMCI_YEDEKLERI[bot_denemesi]
                         bot_denemesi += 1
                         logger.info(f"YouTube bot doğrulaması → '{istemci}' istemcisiyle yeniden deneniyor: {parca.gosterim(50)}")
-                        secenek = {**ydl_opts, 'extractor_args': {'youtube': {'player_client': [istemci]}}}
+                        secenek = _ydl_secenekler(istemci, yt_yedek)
                         await asyncio.sleep(1)
                         continue
                     if not son_hata.kalici and deneme == 0:

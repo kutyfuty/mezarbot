@@ -370,22 +370,44 @@ class Oynatici:
         return True
 
     async def _cal_dayanikli(self, parca, konum):
-        """_cal başarısızsa (ör. URL 403) akış URL'sini yenileyip bir kez daha dener; YouTube yeni URL'yi de
-        reddederse son olarak yedek istemcinin (web_embedded) URL'siyle dener."""
+        """_cal başarısızsa (ör. URL 403) akış URL'sini yeniler; YouTube DASH 403 verdiyse 18/HLS
+        formatına ve yedek istemciye geçerek tekrar dener."""
         if await self._cal(parca, konum):
             return True
-        for istemci in (None, YT_ISTEMCI_YEDEKLERI[0]):
+        if "googlevideo.com" not in (parca.akis_url or ""):
             if self.kapandi or not self.bagli_mi():
                 return False
-            if istemci and "googlevideo.com" not in (parca.akis_url or ""):
-                return False   # YouTube dışı kaynak: yedek istemci anlamsız
             try:
-                await self.cog.cozucu.coz(parca, zorla=True, istemci=istemci)
+                await self.cog.cozucu.coz(parca, zorla=True)
             except CozmeHatasi:
                 return False
+            return await self._cal(parca, konum)
+
+        taze = bool(parca.cozulme_zamani and (time.time() - parca.cozulme_zamani) < 60)
+        yedek_aktif = getattr(self.cog.cozucu, "_yt_yedek_format_son", 0.0) > time.monotonic()
+        denemeler = [] if (taze or yedek_aktif) else [(None, False)]
+        denemeler.append((None, True))
+        for istemci in YT_ISTEMCI_YEDEKLERI:
+            denemeler.append((istemci, istemci != YT_ISTEMCI_YEDEKLERI[0]))
+        denemeler.append((YT_ISTEMCI_YEDEKLERI[0], True))
+        for istemci, yedek_fmt in denemeler:
+            if self.kapandi or not self.bagli_mi():
+                return False
+            try:
+                if yedek_fmt:
+                    await self.cog.cozucu.coz(parca, zorla=True, istemci=istemci, yedek_format=True)
+                else:
+                    await self.cog.cozucu.coz(parca, zorla=True, istemci=istemci)
+            except CozmeHatasi as h:
+                if h.kalici:
+                    return False
+                continue
             if await self._cal(parca, konum):
-                if istemci:
-                    logger.info(f"[{self.guild_id}] 403 sonrası '{istemci}' istemcisiyle kurtarıldı: {parca.gosterim(50)}")
+                if yedek_fmt:
+                    yedek_gec = getattr(self.cog.cozucu, "yedek_formata_gec", None)
+                    if yedek_gec:
+                        yedek_gec()
+                    logger.info(f"[{self.guild_id}] 403 sonrası yedek format ({istemci or 'varsayılan'}) ile kurtarıldı: {parca.gosterim(50)}")
                 return True
         return False
 
@@ -493,7 +515,7 @@ class Oynatici:
             try:
                 async with self._kilit:
                     await self.cog.cozucu.coz(parca, zorla=True)   # URL süresi dolmuş/403 olabilir → yenile
-                    if await self._cal(parca, konum):
+                    if await self._cal_dayanikli(parca, konum):
                         await self.cog.panel_guncelle(self.guild_id)
                         return
             except CozmeHatasi as h:

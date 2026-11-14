@@ -298,10 +298,11 @@ class Yonetim(commands.Cog):
         embed = discord.Embed(color=Renkler.HATA, timestamp=datetime.datetime.now(datetime.timezone.utc))
         embed.set_author(name=_t("📤 Bir Üye Ayrıldı"), icon_url=member.display_avatar.url)
         embed.set_thumbnail(url=member.display_avatar.url)
-        embed.description = (
-            f"{mesaj_icerik}\n\n"
-            f"{bilgi_kutusu(('👤', _t("Kullanıcı"), f'`{member.name}` (`{member.id}`)'), ('👥', _t("Kalan Üye"), f'`{uye_sayisi}`'))}"
+        ayrilma_kutusu = bilgi_kutusu(
+            ('👤', _t("Kullanıcı"), f'`{member.name}` (`{member.id}`)'),
+            ('👥', _t("Kalan Üye"), f'`{uye_sayisi}`'),
         )
+        embed.description = f"{mesaj_icerik}\n\n{ayrilma_kutusu}"
         embed.set_footer(text=f"{member.guild.name}")
         try:
             await kanal.send(embed=embed)
@@ -361,7 +362,7 @@ class Yonetim(commands.Cog):
     # ══════════════════════════════════════════════
 
     # ── Oto-Mod Aç/Kapat ──
-    @commands.hybrid_command(description="Otomatik moderasyonu aç/kapat")
+    @commands.hybrid_command(aliases=["automod"], description="Otomatik moderasyonu aç/kapat")
     @app_commands.default_permissions(manage_guild=True)
     @commands.guild_only()
     @commands.check(yonetici_kontrol)
@@ -383,7 +384,7 @@ class Yonetim(commands.Cog):
         await ctx.send(embed=embed)
 
     # ── Uyar (Warn) ──
-    @commands.hybrid_command(description="Üyeyi uyar")
+    @commands.hybrid_command(aliases=["warn"], description="Üyeyi uyar")
     @app_commands.default_permissions(moderate_members=True)
     @commands.guild_only()
     @commands.has_guild_permissions(moderate_members=True)
@@ -423,8 +424,11 @@ class Yonetim(commands.Cog):
                 w_embed = discord.Embed(color=Renkler.UYARI, timestamp=datetime.datetime.now(datetime.timezone.utc))
                 w_embed.set_author(name=_t("⚠️ Kullanıcı Uyarıldı"), icon_url=uye.display_avatar.url)
                 w_embed.set_thumbnail(url=uye.display_avatar.url)
-                w_embed.description = (
-                    f"{bilgi_kutusu(('👤', _t("Kullanıcı"), uye.mention), ('🔨', _t("Moderatör"), ctx.author.mention), ('📊', _t("Uyarı"), f'`{toplam}/3`'), ('📝', 'Sebep', sebep))}"
+                w_embed.description = bilgi_kutusu(
+                    ('👤', _t("Kullanıcı"), uye.mention),
+                    ('🔨', _t("Moderatör"), ctx.author.mention),
+                    ('📊', _t("Uyarı"), f'`{toplam}/3`'),
+                    ('📝', 'Sebep', sebep),
                 )
                 w_embed.set_footer(text=f"MezarBot • ID: {uye.id}")
                 await kanal.send(content=uye.mention, embed=w_embed)
@@ -437,8 +441,12 @@ class Yonetim(commands.Cog):
             embed = discord.Embed(color=Renkler.HATA, timestamp=datetime.datetime.now(datetime.timezone.utc))
             embed.set_author(name=_t("⚠️ Uyarı & Otomatik Ceza"), icon_url=uye.display_avatar.url)
             embed.set_thumbnail(url=uye.display_avatar.url)
-            embed.description = (
-                f"{bilgi_kutusu(('👤', _t("Kullanıcı"), uye.mention), ('🔨', _t("Moderatör"), ctx.author.mention), ('📝', 'Sebep', sebep), ('📊', _t("Uyarı"), f'`{toplam}/3`'), ('🔇', 'Ceza', _t("**1 saat mute**")))}"
+            embed.description = bilgi_kutusu(
+                ('👤', _t("Kullanıcı"), uye.mention),
+                ('🔨', _t("Moderatör"), ctx.author.mention),
+                ('📝', 'Sebep', sebep),
+                ('📊', _t("Uyarı"), f'`{toplam}/3`'),
+                ('🔇', 'Ceza', _t("**1 saat mute**")),
             )
             embed.set_footer(text=_t("MezarBot • Moderasyon"))
 
@@ -450,8 +458,11 @@ class Yonetim(commands.Cog):
             embed = discord.Embed(color=Renkler.UYARI, timestamp=datetime.datetime.now(datetime.timezone.utc))
             embed.set_author(name=_t("⚠️ Kullanıcı Uyarıldı"), icon_url=uye.display_avatar.url)
             embed.set_thumbnail(url=uye.display_avatar.url)
-            embed.description = (
-                f"{bilgi_kutusu(('👤', _t("Kullanıcı"), uye.mention), ('🔨', _t("Moderatör"), ctx.author.mention), ('📝', 'Sebep', sebep), ('📊', _t("Uyarı"), f'`{toplam}/3`'))}"
+            embed.description = bilgi_kutusu(
+                ('👤', _t("Kullanıcı"), uye.mention),
+                ('🔨', _t("Moderatör"), ctx.author.mention),
+                ('📝', 'Sebep', sebep),
+                ('📊', _t("Uyarı"), f'`{toplam}/3`'),
             )
             embed.set_footer(text=_t("MezarBot • Moderasyon"))
 
@@ -474,7 +485,7 @@ class Yonetim(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.hybrid_command(description="Uyarı log kanalını ayarla")
+    @commands.hybrid_command(aliases=["warnchannel", "setwarn"], description="Uyarı log kanalını ayarla")
     @app_commands.default_permissions(manage_guild=True)
     @commands.guild_only()
     @commands.check(yonetici_kontrol)
@@ -484,39 +495,8 @@ class Yonetim(commands.Cog):
         sunucu_ayar_guncelle(ctx.guild.id, uyari_kanal_id=hedef_kanal.id)
         await ctx.send(_t("✅ Uyarı kanalı {mention} olarak ayarlandı!", mention=hedef_kanal.mention))
 
-    @commands.hybrid_command(name="durumayarla", description="[Bot Sahibi] Botun durumunu kalıcı olarak ayarlar")
-    @app_commands.describe(tip="Durum tipi (oynuyor, dinliyor, izliyor, yarismada)", metin="Durum metni")
-    @app_commands.choices(tip=[
-        app_commands.Choice(name="Oynuyor", value="oynuyor"),
-        app_commands.Choice(name="Dinliyor", value="dinliyor"),
-        app_commands.Choice(name="İzliyor", value="izliyor"),
-        app_commands.Choice(name="Yarışmada", value="yarismada")
-    ])
-    @commands.guild_only()
-    @commands.is_owner()
-    async def durumayarla(self, ctx, tip: str, *, metin: str):
-        """[Bot Sahibi] Botun durumunu kalıcı olarak ayarlar (tüm sunucularda görünür — global).
-        Tipler: oynuyor, dinliyor, izliyor, yarismada
-        Kullanım: !durumayarla izliyor Mezarcı belgesini veya /durumayarla tip:izliyor metin:Mezarcı belgesini
-        """
-        tip = tip.lower()
-
-        if tip not in DURUM_TIPLERI:
-            return await ctx.send(_t("❌ Geçersiz tip! Kullanabileceklerin: `{join}`", join=', '.join(DURUM_TIPLERI.keys())), ephemeral=True)
-
-        c = db.cursor()
-        c.execute("REPLACE INTO bot_ayarlar (ayarlar_id, durum_metni, durum_tipi) VALUES (1, ?, ?)",
-                   (metin, tip))
-        db.commit()
-
-        try:
-            await self.bot.change_presence(activity=discord.Activity(type=DURUM_TIPLERI[tip], name=metin))
-            await ctx.send(_t("✅ Bot durumu ayarlandı: **{capitalize} {metin}**", capitalize=tip.capitalize(), metin=metin))
-        except Exception as e:
-            await ctx.send(_t("❌ Durum güncellenirken hata oluştu: {e}", e=e))
-
     # ── Uyarıları Görüntüle ──
-    @commands.hybrid_command(description="Üyenin uyarılarını göster")
+    @commands.hybrid_command(aliases=["warnings", "warns"], description="Üyenin uyarılarını göster")
     @commands.guild_only()
     async def uyarilar(self, ctx, uye: discord.Member = None):
         """Kullanıcının uyarılarını gösterir. Kullanım: !uyarilar @kişi"""
@@ -537,7 +517,7 @@ class Yonetim(commands.Cog):
         await ctx.send(embed=embed)
 
     # ── Uyarı Sil ──
-    @commands.hybrid_command(description="Üyenin uyarılarını sil")
+    @commands.hybrid_command(aliases=["clearwarns", "unwarn"], description="Üyenin uyarılarını sil")
     @app_commands.default_permissions(moderate_members=True)
     @commands.guild_only()
     @commands.has_guild_permissions(moderate_members=True)
@@ -550,7 +530,7 @@ class Yonetim(commands.Cog):
         await ctx.send(_t("✅ **{display_name}** için tüm uyarılar silindi.", display_name=uye.display_name), delete_after=7)
 
     # ── Mute (Sustur) ──
-    @commands.hybrid_command(description="Üyeyi süreli sustur (ör. 10m, 1h)")
+    @commands.hybrid_command(aliases=["mute", "timeout"], description="Üyeyi süreli sustur (ör. 10m, 1h)")
     @app_commands.default_permissions(moderate_members=True)
     @commands.guild_only()
     @commands.has_guild_permissions(moderate_members=True)
@@ -576,8 +556,11 @@ class Yonetim(commands.Cog):
         sure_metin = sure_insana_cevir(sure_saniye)
         embed = discord.Embed(color=Renkler.UYARI, timestamp=datetime.datetime.now(datetime.timezone.utc))
         embed.set_author(name=_t("🔇 Kullanıcı Susturuldu"), icon_url=uye.display_avatar.url)
-        embed.description = (
-            f"{bilgi_kutusu(('👤', _t("Kullanıcı"), uye.mention), ('🔨', _t("Moderatör"), ctx.author.mention), ('⏱️', _t("Süre"), sure_metin), ('📝', 'Sebep', sebep))}"
+        embed.description = bilgi_kutusu(
+            ('👤', _t("Kullanıcı"), uye.mention),
+            ('🔨', _t("Moderatör"), ctx.author.mention),
+            ('⏱️', _t("Süre"), sure_metin),
+            ('📝', 'Sebep', sebep),
         )
         embed.set_footer(text=_t("MezarBot • Moderasyon"))
         await ctx.send(embed=embed)
@@ -592,7 +575,7 @@ class Yonetim(commands.Cog):
             pass
 
     # ── Unmute (Susturma Kaldır) ──
-    @commands.hybrid_command(description="Üyenin susturmasını kaldır")
+    @commands.hybrid_command(aliases=["unmute", "untimeout"], description="Üyenin susturmasını kaldır")
     @app_commands.default_permissions(moderate_members=True)
     @commands.guild_only()
     @commands.has_guild_permissions(moderate_members=True)
@@ -611,7 +594,7 @@ class Yonetim(commands.Cog):
             await ctx.send(_t("❌ Susturmayı kaldırmak için yetkim yok!"), delete_after=5)
 
     # ── Hoşgeldin Ayarla ──
-    @commands.hybrid_command(description="Hoş geldin kanalını ve mesajını ayarla")
+    @commands.hybrid_command(aliases=["setwelcome", "welcomechannel"], description="Hoş geldin kanalını ve mesajını ayarla")
     @app_commands.default_permissions(manage_guild=True)
     @commands.guild_only()
     @commands.check(yonetici_kontrol)
@@ -628,7 +611,7 @@ class Yonetim(commands.Cog):
         await ctx.send(embed=embed)
 
     # ── Görüşürüz Ayarla ──
-    @commands.hybrid_command(description="Görüşürüz (ayrılma) kanalını ve mesajını ayarla ya da kapat")
+    @commands.hybrid_command(aliases=["setgoodbye", "goodbyechannel"], description="Görüşürüz (ayrılma) kanalını ve mesajını ayarla ya da kapat")
     @app_commands.describe(kanal="Ayrılma mesajının gönderileceği kanal", mesaj="Özel veda mesajı ({uye} üye adıdır)")
     @app_commands.default_permissions(manage_guild=True)
     @commands.guild_only()
@@ -650,7 +633,7 @@ class Yonetim(commands.Cog):
         await ctx.send(embed=embed)
 
     # ── Otorol Ayarla ──
-    @commands.hybrid_command(description="Yeni üyelere otomatik verilecek rolü ayarla")
+    @commands.hybrid_command(aliases=["autorole", "setautorole"], description="Yeni üyelere otomatik verilecek rolü ayarla")
     @app_commands.default_permissions(manage_guild=True)
     @commands.guild_only()
     @commands.check(yonetici_kontrol)
@@ -663,7 +646,7 @@ class Yonetim(commands.Cog):
         await ctx.send(embed=embed)
 
     # ── Log Kanal Ayarla ──
-    @commands.hybrid_command(description="Moderasyon log kanalını ayarla")
+    @commands.hybrid_command(aliases=["setlog", "logchannel"], description="Moderasyon log kanalını ayarla")
     @app_commands.default_permissions(manage_guild=True)
     @commands.guild_only()
     @commands.check(yonetici_kontrol)
@@ -674,24 +657,6 @@ class Yonetim(commands.Cog):
         embed.set_author(name=_t("✅ Log Kanalı Ayarlandı"))
         embed.description = _t("Silinen ve düzenlenen mesajlar artık {mention} kanalına kaydedilecek.", mention=kanal.mention)
         embed.set_footer(text=_t("MezarBot • Ayarlar"))
-        await ctx.send(embed=embed)
-
-    # ── Takım Kur ──
-    @commands.hybrid_command(description="Ses kanalındakileri rastgele takımlara böl")
-    @commands.guild_only()
-    async def takimkur(self, ctx, takim_sayisi: int = 2):
-        """Ses kanalındaki kişileri takımlara böler. Kullanım: !takimkur 3"""
-        if not ctx.author.voice:
-            return await ctx.send(_t("❌ Seste olmalısın."), delete_after=5)
-        uyeler = [m for m in ctx.author.voice.channel.members if not m.bot]
-        if len(uyeler) < takim_sayisi:
-            return await ctx.send(_t("❌ Yeterli kişi yok!"), delete_after=5)
-        random.shuffle(uyeler)
-        takimlar = [uyeler[i::takim_sayisi] for i in range(takim_sayisi)]
-        embed = premium_embed(_t("⚔️ Takımlar Oluşturuldu"), None, renk=Renkler.UYARI)
-        for i, takim in enumerate(takimlar, 1):
-            isimler = "\n".join(m.display_name for m in takim) if takim else _t("Boş")
-            embed.add_field(name=_t("🛡️ Takım {i} ({len} kişi)", i=i, len=len(takim)), value=isimler, inline=True)
         await ctx.send(embed=embed)
 
     # ── AFK ──
@@ -705,7 +670,7 @@ class Yonetim(commands.Cog):
         await ctx.send(embed=embed)
 
     # ── Mesaj Sil ──
-    @commands.hybrid_command(description="Kanaldan mesaj sil (varsayılan 5)")
+    @commands.hybrid_command(aliases=["purge", "prune", "clean"], description="Kanaldan mesaj sil (varsayılan 5)")
     @app_commands.default_permissions(manage_messages=True)
     @commands.guild_only()
     @commands.has_guild_permissions(manage_messages=True)
@@ -730,7 +695,7 @@ class Yonetim(commands.Cog):
             pass
 
     # ── Bot ile Mesaj Yazdır ──
-    @commands.hybrid_command(name="yaz", description="Seçilen kanala bot aracılığıyla mesaj gönder")
+    @commands.hybrid_command(name="yaz", aliases=["say", "echo"], description="Seçilen kanala bot aracılığıyla mesaj gönder")
     @app_commands.describe(
         mesaj="Gönderilecek mesaj metni",
         kanal="Mesajın gönderileceği kanal (boş bırakılırsa bu kanal)"
@@ -787,7 +752,7 @@ class Yonetim(commands.Cog):
             await ctx.send(_t("✅ Mesaj {mention} kanalına iletildi.", mention=hedef_kanal.mention), delete_after=3)
 
     # ── Kick ──
-    @commands.hybrid_command(description="Üyeyi sunucudan at")
+    @commands.hybrid_command(aliases=["kick"], description="Üyeyi sunucudan at")
     @app_commands.default_permissions(kick_members=True)
     @commands.guild_only()
     @commands.has_guild_permissions(kick_members=True)
@@ -815,8 +780,10 @@ class Yonetim(commands.Cog):
             db.commit()
             embed = discord.Embed(color=Renkler.HATA, timestamp=datetime.datetime.now(datetime.timezone.utc))
             embed.set_author(name=_t("👢 Kullanıcı Atıldı"), icon_url=ctx.author.display_avatar.url)
-            embed.description = (
-                f"{bilgi_kutusu(('👤', _t("Kullanıcı"), f'{uye.display_name} (`{uye.id}`)'), ('🔨', _t("Moderatör"), ctx.author.mention), ('📝', 'Sebep', sebep))}"
+            embed.description = bilgi_kutusu(
+                ('👤', _t("Kullanıcı"), f'{uye.display_name} (`{uye.id}`)'),
+                ('🔨', _t("Moderatör"), ctx.author.mention),
+                ('📝', 'Sebep', sebep),
             )
             embed.set_footer(text=_t("MezarBot • Moderasyon"))
             await ctx.send(embed=embed)
@@ -827,7 +794,7 @@ class Yonetim(commands.Cog):
             await ctx.send(_t("❌ Bir hata oluştu: {e}", e=e), delete_after=7)
 
     # ── Ban ──
-    @commands.hybrid_command(description="Üyeyi sunucudan yasakla")
+    @commands.hybrid_command(aliases=["ban"], description="Üyeyi sunucudan yasakla")
     @app_commands.default_permissions(ban_members=True)
     @commands.guild_only()
     @commands.has_guild_permissions(ban_members=True)
@@ -855,8 +822,10 @@ class Yonetim(commands.Cog):
             db.commit()
             embed = discord.Embed(color=Renkler.HATA, timestamp=datetime.datetime.now(datetime.timezone.utc))
             embed.set_author(name=_t("🔨 Kullanıcı Yasaklandı"), icon_url=ctx.author.display_avatar.url)
-            embed.description = (
-                f"{bilgi_kutusu(('👤', _t("Kullanıcı"), f'{uye.display_name} (`{uye.id}`)'), ('🔨', _t("Moderatör"), ctx.author.mention), ('📝', 'Sebep', sebep))}"
+            embed.description = bilgi_kutusu(
+                ('👤', _t("Kullanıcı"), f'{uye.display_name} (`{uye.id}`)'),
+                ('🔨', _t("Moderatör"), ctx.author.mention),
+                ('📝', 'Sebep', sebep),
             )
             embed.set_footer(text=_t("MezarBot • Moderasyon"))
             await ctx.send(embed=embed)
@@ -887,7 +856,6 @@ class Yonetim(commands.Cog):
             (_t("👋 Hoşgeldin kanalı"), kanal(ayar.get('hosgeldin_kanal_id')), _t("!hosgeldinayarla #kanal [mesaj]")),
             (_t("📤 Görüşürüz kanalı"), kanal(ayar.get('gorusuruz_kanal_id')), _t("!gorusuruzayarla #kanal")),
             (_t("🏷️ Otorol"), otorol.mention if otorol else _t("`ayarlı değil`"), _t("!otorolayarla @rol")),
-            (_t("📢 Yama notları"), kanal(ayar.get('yama_notlari_kanal_id')), _t("!yamanotukanal #kanal · kapat")),
             (_t("🤖 Oto-mod"), acik_mi(ayar.get('otomod_aktif')), "!otomod"),
             (_t("🗳️ Oy ile geç"), acik_mi(ayar.get('oygec_aktif')), _t("!oygec ac · kapat")),
         ]
@@ -897,22 +865,12 @@ class Yonetim(commands.Cog):
         embed.set_footer(text=_t("Ayarlanmamış özellikler bu sunucuda devre dışıdır • MezarBot"))
         return embed
 
-    @commands.hybrid_command(name="ayarlar", description="Sunucunun bot ayarlarını göster ve değiştir")
+    @commands.hybrid_command(name="ayarlar", aliases=["settings", "config"], description="Sunucunun bot ayarlarını göster ve değiştir")
     @app_commands.default_permissions(manage_guild=True)
     @commands.guild_only()
     @commands.check(yonetici_kontrol)
     async def ayarlar(self, ctx):
         """[Yönetici] Bu sunucunun MezarBot ayarlarını ve dilini gösterir/değiştirir."""
-        embed = self._ayarlar_embedi(ctx.guild)
-        view = AyarlarDilGorunumu(self, ctx.guild.id)
-        await ctx.send(embed=embed, view=view)
-
-    @commands.hybrid_command(name="settings", description="View and change bot settings and language for this server")
-    @app_commands.default_permissions(manage_guild=True)
-    @commands.guild_only()
-    @commands.check(yonetici_kontrol)
-    async def settings(self, ctx):
-        """[Admin] View and change bot settings and language for this server."""
         embed = self._ayarlar_embedi(ctx.guild)
         view = AyarlarDilGorunumu(self, ctx.guild.id)
         await ctx.send(embed=embed, view=view)
@@ -930,48 +888,6 @@ class Yonetim(commands.Cog):
         """[Yönetici] Botun bu sunucudaki varsayılan dilini ayarlar. Kullanım: !dil tr | !dil en | !language en"""
         dil_zorla(sunucu_dil_ayarla(ctx.guild.id, yeni_dil))   # onay mesajı yeni dilde
         await ctx.send(_t("✅ Sunucu dili **Türkçe** olarak ayarlandı. Bot bu sunucuda artık Türkçe yanıt verecektir."))
-
-    @commands.hybrid_command(description="Yama notu kanalını ayarla ya da kapat")
-    @app_commands.default_permissions(manage_guild=True)
-    @commands.guild_only()
-    @commands.check(yonetici_kontrol)
-    async def yamanotukanal(self, ctx, kanal: Optional[discord.TextChannel] = None, *, secenek: str = None):
-        """[Yönetici] MezarBot yama notlarının (güncelleme duyurularının) geleceği kanalı ayarlar.
-        Kullanım: !yamanotukanal #kanal  |  !yamanotukanal kapat  |  argümansız: bu kanal"""
-        if kanal is None and secenek and secenek.lower() in ('kapat', 'kapali', 'kapalı', 'off'):
-            sunucu_ayar_guncelle(ctx.guild.id, yama_notlari_kanal_id=None)
-            return await ctx.send(_t("🔕 Yama notları bu sunucuda kapatıldı."))
-        hedef_kanal = kanal or ctx.channel
-        sunucu_ayar_guncelle(ctx.guild.id, yama_notlari_kanal_id=hedef_kanal.id)
-        await ctx.send(embed=premium_embed(_t("📢 Yama Notu Kanalı Ayarlandı"),
-                                           _t("MezarBot güncelleme notları artık {mention} kanalına gönderilecek.", mention=hedef_kanal.mention),
-                                           renk=Renkler.BASARI))
-
-    @commands.hybrid_command(name="yamanotu", description="[Bot Sahibi] Yama notunu tüm sunuculara duyurur")
-    @app_commands.describe(metin="Yama notu metni")
-    @commands.is_owner()
-    async def yamanotu(self, ctx, *, metin: str):
-        """[Bot Sahibi] Yama notunu, yama notu kanalı ayarlı olan TÜM sunuculara gönderir.
-        Kanalı ayarlamamış sunucular atlanır."""
-        if len(metin) > 4000:
-            return await ctx.send(_t("❌ Yama notu çok uzun! (Maks 4000 karakter)"), ephemeral=True)
-        embed = discord.Embed(title=_t("📢 MezarBot Yama Notları"), description=metin, color=Renkler.BILGI,
-                              timestamp=datetime.datetime.now(datetime.timezone.utc))
-        embed.set_footer(text=_t("MezarBot • Güncelleme"))
-        gonderilen = atlanan = hatali = 0
-        for guild in self.bot.guilds:
-            kanal_id = (sunucu_ayar_al(guild.id) or {}).get('yama_notlari_kanal_id')
-            kanal = guild.get_channel(kanal_id) if kanal_id else None
-            if not kanal:
-                atlanan += 1
-                continue
-            try:
-                await kanal.send(embed=embed)
-                gonderilen += 1
-            except (discord.Forbidden, discord.HTTPException) as e:
-                hatali += 1
-                logger.warning(f"Yama notu gönderilemedi ({guild.name} / {guild.id}): {e}")
-        await ctx.send(_t("📢 Yama notu gönderildi: **{gonderilen}** sunucu · atlanan (kanal ayarsız): **{atlanan}** · hata: **{hatali}**", gonderilen=gonderilen, atlanan=atlanan, hatali=hatali))
 
     # ── Sahip Komutu: Slash Sync ──
     @commands.hybrid_command(name="sync", description="[Bot Sahibi] Slash komutlarını global senkronize eder")

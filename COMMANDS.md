@@ -140,14 +140,6 @@ Most commands work with both `/` (slash) and `!` (prefix); grouped commands (e.g
 | `/help` | View MezarBot command guide and help menu |
 | `/yardim` | View the MezarBot command guide |
 
-## 🚪 Member approval gate (optional, enabled in config)
-
-| Command | Description |
-|---|---|
-| `/dilpaneli` | Re-sends the language picker panel in the 🚪・giris channel |
-| `/onayla` | Approves a pending member and opens the channels |
-| `/reddet` | Rejects a pending member and kicks them from the server |
-
 ## Message reactions
 
 - React with 🇬🇧 / 🇺🇸 to translate a message to English, 🇹🇷 to Turkish (Groq).

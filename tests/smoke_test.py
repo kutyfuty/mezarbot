@@ -555,7 +555,7 @@ def main():
 
         print("\n[5] Modül import + tüm cog'ları çevrimdışı yükleme")
         import main
-        kontrol(not any(v in main.vagonlar for v in ("cogs.bedwars", "cogs.cs2sunucu", "cogs.ekonomi", "cogs.kelimeoyunu", "cogs.oyun_indirimleri", "cogs.itiraf", "cogs.starboard", "cogs.wishlist")), "devre dışı cog'lar yüklenmiyor")
+        kontrol(not any(v in main.vagonlar for v in ("cogs.bedwars", "cogs.cs2sunucu", "cogs.ekonomi", "cogs.kelimeoyunu", "cogs.oyun_indirimleri", "cogs.itiraf", "cogs.starboard", "cogs.wishlist", "cogs.ceviri", "cogs.konusma")), "devre dışı cog'lar yüklenmiyor")
         kontrol(not os.path.exists(os.path.join(BOT_DIZINI, "cogs", "bedwars.py")), "eski cog'lar cogs/ dışında")
         kontrol(main.bot.owner_id == y.SAHIP_ID, "bot.owner_id = sahip_id")
         for vagon in main.vagonlar:
@@ -565,7 +565,7 @@ def main():
             for vagon in main.vagonlar:
                 await main.bot.load_extension(vagon)
             kontrol(len(main.bot.cogs) == len(main.vagonlar), f"{len(main.bot.cogs)} cog yüklendi (beklenen: {len(main.vagonlar)})")
-            for komut in ("ayarlar", "yamanotukanal", "cal", "ozelodaaktif", "ozelodakapat", "ozeloda", "oda", "ciz", "draw", "yardim", "help"):
+            for komut in ("ayarlar", "settings", "cal", "play", "ozelodaaktif", "ozelodakapat", "ozeloda", "oda", "sifirla", "reset", "yardim", "help"):
                 kontrol(main.bot.get_command(komut) is not None, f"komut kayıtlı: !{komut}")
             for vagon in list(main.bot.extensions):
                 await main.bot.unload_extension(vagon)

@@ -247,6 +247,123 @@ def saf_mantik():
     kontrol(not ayni_surum("2026.08.19", "2026.10.1") and not ayni_surum("2026.8.19", "2026.8.19.1"),
             "yt-dlp sürümü: gerçekten yeni sürüm algılanır")
 
+    # DAVE (davey <0.2) uyumluluk koruması
+    from cogs.muzik.cog import dave_uyumluluk_sorunu
+    req_yollari = [p for p in ("requirements.txt", os.path.join("deploy", "muzik-bot", "requirements.txt"))
+                   if os.path.isfile(os.path.join(BOT_DIZINI, p))]
+    kontrol(bool(req_yollari), "requirements.txt dosyası bulunamadı")
+    for req_yol in req_yollari:
+        with open(os.path.join(BOT_DIZINI, req_yol), encoding="utf-8") as req_f:
+            satirlar = [s.strip() for s in req_f if s.strip() and not s.lstrip().startswith("#")]
+        davey_satirlari = [s for s in satirlar if s.lower().startswith("davey")]
+        kontrol(len(davey_satirlari) == 1 and "<0.2" in davey_satirlari[0],
+                f"{req_yol}: davey <0.2 üst sınırı tanımlı ({davey_satirlari})")
+    kontrol(dave_uyumluluk_sorunu() is None, "kurulu davey ve discord.py DAVE arayüzü uyumlu")
+    sahte_020 = types.SimpleNamespace(__version__="0.2.0", DaveSession=type("DS", (), {"prepare_transition": lambda self, *a: None}))
+    class _EskiVC:
+        pass
+    class _YeniVC:
+        def prepare_transition(self):
+            pass
+    kontrol(dave_uyumluluk_sorunu(sahte_020, _EskiVC) is not None and dave_uyumluluk_sorunu(sahte_020, _YeniVC) is None,
+            "davey 0.2+ ile eski discord.py uyumsuzluğu yakalanır")
+
+    def _cerez_koruma_testi():
+        import os
+        import shutil
+        import stat
+        import sys
+        import tempfile
+        from pathlib import Path
+        from cogs.muzik import isci
+
+        with isci._gecici_cerez(None) as yok_yol:
+            kontrol(yok_yol is None, "boş cookiefile yolu None kalır")
+
+        olmayan = "/tmp/mezarbot_olmayan_cerez_999999.txt"
+        with isci._gecici_cerez(olmayan) as korunan_yol:
+            kontrol(korunan_yol == olmayan, "mevcut olmayan cookiefile yolu değiştirilmez")
+
+        gecici_kok = tempfile.mkdtemp(prefix="mezarbot_cktest_")
+        try:
+            ana_cerez = os.path.join(gecici_kok, "cookies.txt")
+            ana_icerik = "# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t9999999999\tLOGIN_INFO\tORNEK\n"
+            Path(ana_cerez).write_text(ana_icerik, encoding="utf-8")
+            os.chmod(ana_cerez, 0o400)
+
+            with isci._gecici_cerez(ana_cerez) as kopya_yol:
+                kontrol(
+                    kopya_yol != ana_cerez and os.path.isfile(kopya_yol),
+                    "_gecici_cerez ana dosyadan ayrı geçici kopya verir",
+                )
+                kip = stat.S_IMODE(os.stat(kopya_yol).st_mode)
+                kontrol((kip & 0o600) == 0o600, "geçici cookie kopyası 0600 yazılabilir açılır")
+                Path(kopya_yol).write_text("GECICI_YAZMA\n", encoding="utf-8")
+
+            kontrol(not os.path.exists(os.path.dirname(kopya_yol)), "_gecici_cerez çıkışta geçici dizini temizler")
+            kontrol(
+                Path(ana_cerez).read_text(encoding="utf-8") == ana_icerik,
+                "ana cookie dosyası geçici yazmadan etkilenmez",
+            )
+
+            gorulen_yollar = []
+            eski_yt_dlp = sys.modules.get("yt_dlp")
+
+            class _SahteYDL:
+                def __init__(self, sec):
+                    self.cookiefile = sec.get("cookiefile")
+                    gorulen_yollar.append(self.cookiefile)
+
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *a):
+                    if self.cookiefile:
+                        Path(self.cookiefile).write_text("BOZULDU\n", encoding="utf-8")
+
+                def extract_info(self, hedef, download=False):
+                    return {
+                        "id": "ornek",
+                        "title": "Deneme Parça",
+                        "url": "https://ornek.invalid/akis",
+                        "webpage_url": hedef,
+                        "duration": 120,
+                    }
+
+            sys.modules["yt_dlp"] = types.SimpleNamespace(YoutubeDL=_SahteYDL)
+            try:
+                sonuc = isci.cikar({"cookiefile": ana_cerez}, "https://youtu.be/ornek")
+            finally:
+                if eski_yt_dlp is None:
+                    sys.modules.pop("yt_dlp", None)
+                else:
+                    sys.modules["yt_dlp"] = eski_yt_dlp
+
+            kontrol(
+                len(gorulen_yollar) == 1 and gorulen_yollar[0] != ana_cerez,
+                "isci.cikar yt-dlp'ye ana cookiefile yerine geçici kopya verir",
+            )
+            kontrol(
+                not os.path.exists(os.path.dirname(gorulen_yollar[0])),
+                "isci.cikar sonrasında geçici cookie dizini silinir",
+            )
+            kontrol(
+                Path(ana_cerez).read_text(encoding="utf-8") == ana_icerik,
+                "yt-dlp __exit__ yazması ana cookies.txt dosyasını küçültmez",
+            )
+            kontrol(
+                isinstance(sonuc, dict) and sonuc.get("title") == "Deneme Parça",
+                "isci.cikar beklenen parça bilgisini döndürür",
+            )
+        finally:
+            try:
+                os.chmod(ana_cerez, 0o600)
+            except OSError:
+                pass
+            shutil.rmtree(gecici_kok, ignore_errors=True)
+
+    _cerez_koruma_testi()
+
 
 # ══════════════════════════════════════════════
 #  [2] VERİTABANI
@@ -379,19 +496,28 @@ class SahteSesIstemcisi:
 
 
 class SahteCozucu:
-    def __init__(self, radyo_dosyasi=None):
+    def __init__(self, radyo_dosyasi=None, kurtarma_dosyasi=None):
         self.radyo_dosyasi = radyo_dosyasi
+        self.kurtarma_dosyasi = kurtarma_dosyasi
         self.coz_sayisi = 0
+        self.yedek_sayisi = 0
+        self._yt_yedek_format_son = 0.0
 
-    async def coz(self, parca, zorla=False, istemci=None):
+    def yedek_formata_gec(self, sure=900):
+        self._yt_yedek_format_son = time.monotonic() + sure
+
+    async def coz(self, parca, zorla=False, istemci=None, yedek_format=False):
         from cogs.muzik.kaynaklar import CozmeHatasi
         if not zorla and parca.akis_gecerli_mi():
             return parca
         self.coz_sayisi += 1
+        if yedek_format:
+            self.yedek_sayisi += 1
         if parca.sorgu.startswith("yok:"):
             raise CozmeHatasi("yaş kısıtlamalı (giriş gerekiyor)")
-        parca.akis_url = parca.sorgu
-        parca.akis_codec = "opus" if parca.sorgu.endswith(".webm") else "aac"
+        hedef = self.kurtarma_dosyasi if (yedek_format and self.kurtarma_dosyasi) else parca.sorgu
+        parca.akis_url = hedef
+        parca.akis_codec = "opus" if str(hedef).endswith(".webm") else "aac"
         parca.cozulme_zamani = time.time()
         return parca
 
@@ -652,6 +778,19 @@ async def durum_makinesi():
             f"{getattr(oyn.kaynak, 'baslangic', float('nan')):.2f} sn)")
     oyn.durdur()
 
+    # 403 sonrası yedek format kurtarması (googlevideo.com başarısız → yedek_format=True ile kurtar + süre başlat)
+    oyn.durdur()
+    cog.cozucu.kurtarma_dosyasi = ton2
+    p403 = Parca(sorgu="http://127.0.0.1:1/googlevideo.com", baslik="YouTube 403 Test", sure=4)
+    p403.akis_url = p403.sorgu
+    p403.akis_codec = "opus"
+    p403.cozulme_zamani = time.time()
+    kurtuldu = await oyn._cal_dayanikli(p403, 0.0)
+    kontrol(kurtuldu and cog.cozucu.yedek_sayisi >= 1 and cog.cozucu._yt_yedek_format_son > time.monotonic(),
+            "YouTube 403 sonrası yedek format (18/HLS) ile kurtarıldı")
+    cog.cozucu.kurtarma_dosyasi = None
+    oyn.durdur()
+
     # Kısıtlı parça atlanır + otomatik oynatma
     vc.kare_suresi = 0.002
     oyn.otomatik = True
@@ -711,7 +850,7 @@ async def gercek_akis(cozucu):
     rc, _, err = calistir(args, 5)
     kontrol(rc == 0, "sarma (-ss 95) + copy → çıkış kodu 0")
 
-    # 403 kurtarma: yedek istemcinin (web_embedded) URL'si de FFmpeg'le çalınabilmeli
+    # 403 kurtarma: yedek istemcinin (YT_ISTEMCI_YEDEKLERI[0]) URL'si de FFmpeg'le çalınabilmeli
     from cogs.muzik.kaynaklar import YT_ISTEMCI_YEDEKLERI
     p2 = Parca(sorgu=p.sorgu)
     await cozucu.coz(p2, zorla=True, istemci=YT_ISTEMCI_YEDEKLERI[0])

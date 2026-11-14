@@ -123,12 +123,6 @@ DURUM_MESAJLARI = [tuple(x) for x in _config.get("durum_mesajlari") or [] if isi
 # Çoklu müzik botu: aynı sunucuda farklı ses kanallarında çalan bot hesaplarının ID'leri (sıra = öncelik).
 MUZIK_ORNEKLERI = _id_listesi(_config, "muzik_ornekleri")
 
-# Üye onay kapısı (cogs/sunucu_onay.py) — tek bir sunucu için; sunucu_id boşsa sistem kapalıdır.
-_onay = _config.get("onay_sistemi") or {}
-ONAY_SUNUCU_ID = _id_oku(_onay, "sunucu_id")
-ONAY_KURUCU_ID = _id_oku(_onay, "kurucu_id") or SAHIP_ID      # kendi davetiyle gelenler otomatik onaylanır
-ONAY_GENEL_DAVET_KODU = str(_onay.get("genel_davet_kodu") or "").strip()   # bu davetle gelenler onay bekler
-
 
 def _js_calisma_ortamlari():
     """yt-dlp 'js_runtimes' ayarını oluşturur (YouTube JS challenge çözümü için).

@@ -12,8 +12,7 @@ BOLUMLER = [("cogs.muzik.cog", "🎵 Müzik", "🎵 Music"), ("cogs.ozel_oda", "
             ("cogs.ses_aktivite", "📊 Ses istatistikleri", "📊 Voice stats"),
             ("cogs.yonetim", "🛡️ Moderasyon ve sunucu ayarları", "🛡️ Moderation & server settings"),
             ("cogs.yapayzeka", "🤖 Yapay zekâ", "🤖 AI"), ("cogs.konusma", "🗣️ Seslendirme (TTS)", "🗣️ Text to speech"),
-            ("cogs.ceviri", "🌐 Çeviri", "🌐 Translation"), ("cogs.yardim", "❓ Yardım", "❓ Help"),
-            ("cogs.sunucu_onay", "🚪 Üye onay kapısı (opsiyonel, config ile açılır)", "🚪 Member approval gate (optional, enabled in config)")]
+            ("cogs.ceviri", "🌐 Çeviri", "🌐 Translation"), ("cogs.yardim", "❓ Yardım", "❓ Help")]
 
 
 async def topla():

@@ -5,7 +5,7 @@
 - **NEVER** commit `.env`, `*.db`, `*.log`, `bot.lock` or `.cache` — `.gitignore` is configured for this
 - **NEVER** open the real `mezarbot.db` from tests/scripts — set `MEZARBOT_DB=/tmp/...` **before** importing `database` (it connects at import time)
 - All SQL queries MUST use parameterized values (`?`). Column names in dynamic queries MUST be validated against a whitelist — `SUNUCU_AYAR_KOLONLARI` / `KELIME_OYUNU_KOLONLARI` in `database.py` (`sunucu_ayar_guncelle`, `kelime_oyunu_guncelle` raise `ValueError` otherwise)
-- Owner ID lives ONLY in `config.json` → `sahip_id` (exposed as `yapilandirma.SAHIP_ID`, also `bot.owner_id`); trusted users → `guvenilir_idler`, approval gate → `onay_sistemi`. Never hardcode user/guild/role/channel IDs (the repo is public)
+- Owner ID lives ONLY in `config.json` → `sahip_id` (exposed as `yapilandirma.SAHIP_ID`, also `bot.owner_id`); trusted users → `guvenilir_idler`. Never hardcode user/guild/role/channel IDs (the repo is public)
 - The bot is **multi-guild**: server-specific settings go in the `sunucu_ayarlar` table (add a migration + whitelist entry), are set by guild admins via commands, and features MUST skip cleanly when a guild hasn't configured them
 - Permission checks: settings commands → `@commands.check(yonetici_kontrol)` (owner, or Administrator / Manage Guild in that guild); moderation → `commands.has_guild_permissions(...)` (real Discord permission); VIP perks → `vip_kontrol(member)`. VIP ≠ admin
 - All gambling/random outcomes (blackjack, yazitura, duello) MUST use `_secure_random` (`random.SystemRandom()`), never `random`
@@ -17,7 +17,7 @@
 
 - `venv/bin/python -m py_compile $(git ls-files '*.py')`
 - `venv/bin/python tests/smoke_test.py` — offline (no Discord), temp DB; add `--gercek-db-kopyasi` to run migrations on a /tmp copy of the real DB
-- All default cogs load (`vagonlar` in `main.py`: yonetim, yapayzeka, muzik, yardim, konusma, ses_aktivite, durum_rotator, ozel_oda, sunucu_onay, ceviri) + `config.json → ek_coglar`
+- All default cogs load (`vagonlar` in `main.py`: yonetim, yapayzeka, muzik, yardim, ses_aktivite, durum_rotator, ozel_oda) + `config.json → ek_coglar`
 - `venv/bin/python tests/ozel_oda_test.py` — private voice rooms, offline
 - No bare `except:` — always catch specific exceptions or `except Exception:`
 - Bot starts: `venv/bin/python main.py` (needs `DISCORD_TOKEN` in `.env`); as a service see `deploy/mezarbot.service.example` (or `docker compose up -d`)
@@ -26,7 +26,7 @@
 
 - All code, variable names and comments are in **Turkish**. User-facing strings are Turkish source text wrapped in `_t("…")` (`dil.py`); the English translation lives in `dil_en.py` → `EN` (key = the exact Turkish template, `{placeholders}` identical). The active language is the guild's `/dil` setting, set automatically per slash command / component / event via a contextvar; background tasks use `dilli_gorev(coro, guild)` or `dil_ayarla(guild)`. Never build `_t` keys with f-strings; constants defined at import time are translated at the use site (`_t(SABIT)`). Channel/role NAMES used for lookup are not translated. `tests/dil_test.py` fails on any missing translation (`--eksik` dumps them)
 - Cog-based architecture: each feature is a separate file in `cogs/`; retired cogs live in `cogs_devre_disi/` (not loaded)
-- Paths/config live in `yapilandirma.py` (`BOT_DIZINI`, `DB_DOSYA`, `VERI_DIZINI`, `GECICI_DIZIN`, `YTDL_CACHE_DIZINI`, `SAHIP_ID`, `PREFIX`, `ESKI_EKONOMI_SUNUCU_ID`, `GUVENILIR_IDLER`, `EK_COGLAR`, `DURUM_MESAJLARI`, `ONAY_*`). Every path is resolved relative to the bot directory, never the CWD. `.env` is loaded from the bot directory
+- Paths/config live in `yapilandirma.py` (`BOT_DIZINI`, `DB_DOSYA`, `VERI_DIZINI`, `GECICI_DIZIN`, `YTDL_CACHE_DIZINI`, `SAHIP_ID`, `PREFIX`, `ESKI_EKONOMI_SUNUCU_ID`, `GUVENILIR_IDLER`, `EK_COGLAR`, `DURUM_MESAJLARI`). Every path is resolved relative to the bot directory, never the CWD. `.env` is loaded from the bot directory
 - Shared UI constants and helpers live in `arayuz.py` (`FFMPEG_YOLU`, `DURUM_TIPLERI`, `Renkler`, embed builders)
 - Groq (AI chat, !ciz prompt translation, /cevir + flag translation) goes through `groq_yardimci.py` (`groq_istemci()` shared client, `groq_tamamla()` model fallback) — do not create Groq clients or model loops in cogs
 - Database functions live in `database.py` — cogs import `db` for direct cursor use, plus cache wrapper functions
@@ -51,7 +51,7 @@
 ## Important locations
 
 - `yapilandirma.py` — paths, `.env` loading, `config.json` parsing, yt-dlp JS runtime detection
-- `config.json` — non-secret, bot-wide settings (`sahip_id`, `prefix`, `guvenilir_idler`, `onay_sistemi`, `ek_coglar`, `durum_mesajlari`, `eski_ekonomi_sunucu_id` (migration target for legacy global economy data), `node_yolu`/`deno_yolu`)
+- `config.json` — non-secret, bot-wide settings (`sahip_id`, `prefix`, `guvenilir_idler`, `ek_coglar`, `durum_mesajlari`, `eski_ekonomi_sunucu_id` (migration target for legacy global economy data), `node_yolu`/`deno_yolu`)
 - `.env` — `DISCORD_TOKEN` (required), `GROQ_API_KEY`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `REPLICATE_API_TOKEN`, `HUGGINGFACE_TOKEN` (currently unused)
 - `database.py` — DB connection, cache globals, VIP/AFK/settings/permission helpers, schema + migrations (`veritabanini_kur()`)
 - `deploy/mezarbot.service.example` — hardened systemd unit example; `Dockerfile` / `docker-compose.yml` — container setup

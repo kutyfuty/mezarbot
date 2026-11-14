@@ -59,6 +59,32 @@ def js_ortamlarini_denetle():
                        "YouTube'da bazı videolar çalınamayabilir. config.json → node_yolu / deno_yolu.")
 
 
+def dave_uyumluluk_sorunu(davey_mod=None, vc_sinifi=None) -> str | None:
+    """Kurulu davey ile discord.py DAVE arayüzü uyumsuzsa kısa açıklama döndürür."""
+    try:
+        import inspect
+        if davey_mod is None:
+            import davey as davey_mod
+        if vc_sinifi is None:
+            from discord.voice_state import VoiceConnectionState as vc_sinifi
+    except ImportError:
+        return None
+    session_cls = getattr(davey_mod, "DaveSession", None)
+    if session_cls is None or not hasattr(session_cls, "prepare_transition"):
+        return None
+    try:
+        src = inspect.getsource(vc_sinifi)
+    except (OSError, TypeError):
+        src = ""
+    if "prepare_transition" in src:
+        return None
+    surum = getattr(davey_mod, "__version__", "?")
+    return (
+        f"davey {surum} prepare_transition() gerektiriyor ama {vc_sinifi.__name__} çağırmıyor "
+        "(seste ses çıkmaz → çözüm: venv/bin/pip install 'davey>=0.1.6,<0.2')"
+    )
+
+
 def dave_durumunu_raporla():
     """discord.py 2.7+ ses için DAVE (uçtan uca şifreleme) kütüphanesi `davey`'i ZORUNLU tutar
     (VoiceClient.__init__ yoksa RuntimeError). Discord 2 Mart 2026'dan beri DAVE'siz ses bağlantısını reddeder."""
@@ -69,9 +95,12 @@ def dave_durumunu_raporla():
     if has_dave:
         import davey
         logger.info(f"🔒 DAVE (uçtan uca ses şifreleme) hazır: davey {davey.__version__}, protokol v{davey.DAVE_PROTOCOL_VERSION}")
+        sorun = dave_uyumluluk_sorunu()
+        if sorun:
+            logger.critical(f"❌ DAVE uyumsuzluğu: {sorun}")
     else:
         logger.critical("❌ davey kurulu değil → discord.py sese bağlanamaz (Discord E2EE'siz sesi reddediyor). "
-                        "Kurulum: venv/bin/pip install davey")
+                        "Kurulum: venv/bin/pip install 'davey>=0.1.6,<0.2'")
 
 
 async def kalici_durumu_yukle(bot):
@@ -1309,7 +1338,7 @@ class Muzik(commands.Cog):
         gorunum = SayfaGorunumu(uretici, kullanici_id=uid)
         gorunum.mesaj = await self._yanit(ctx, embed=gorunum.ilk(), view=gorunum, sure=180)
 
-    @calmalistesi.command(name="kaydet", description="Çalan şarkı + kuyruğu kişisel listene kaydeder (aynı ad varsa üzerine yazar)")
+    @calmalistesi.command(name="kaydet", aliases=["save"], description="Çalan şarkı + kuyruğu kişisel listene kaydeder (aynı ad varsa üzerine yazar)")
     @app_commands.describe(ad="Liste adı")
     async def cl_kaydet(self, ctx, *, ad: str):
         oyn = self.oynaticilar.get(ctx.guild.id)
@@ -1324,7 +1353,7 @@ class Muzik(commands.Cog):
         n = mdb.listeye_parca_ekle(liste_id, [p.veritabani_bicimi() for p in parcalar], bastan_yaz=True)
         await self._yanit(ctx, _t("💾 **{ad}** listesine **{n}** parça kaydedildi.", ad=ad, n=n))
 
-    @calmalistesi.command(name="ekle", description="Listene şarkı ekler (boş: çalan şarkı)")
+    @calmalistesi.command(name="ekle", aliases=["add"], description="Listene şarkı ekler (boş: çalan şarkı)")
     @app_commands.describe(ad="Liste adı", sorgu="Şarkı adı / link (boş: çalan şarkı)")
     async def cl_ekle(self, ctx, ad: str, *, sorgu: str = None):
         try:
@@ -1347,7 +1376,7 @@ class Muzik(commands.Cog):
             return await self._yanit(ctx, _t("❌ Liste dolu ({LISTE_PARCA_LIMITI} parça).", LISTE_PARCA_LIMITI=mdb.LISTE_PARCA_LIMITI))
         await self._yanit(ctx, _t("➕ **{ad}** listesine {n} parça eklendi", ad=ad, n=n) + (f": **{parcalar[0].gosterim(50)}**" if n == 1 else "."))
 
-    @calmalistesi.command(name="oynat", description="Çalma listesini kuyruğa ekler")
+    @calmalistesi.command(name="oynat", aliases=["play", "p"], description="Çalma listesini kuyruğa ekler")
     @app_commands.describe(ad="Liste adı (varsayılan: Favoriler)", karistir="Karıştırarak ekle (evet/hayır)")
     async def cl_oynat(self, ctx, ad: str = "Favoriler", karistir: str = None):
         bulunan = mdb.liste_bul_ayrintili(ctx.author.id, ad, genel_ara=True)
@@ -1355,7 +1384,7 @@ class Muzik(commands.Cog):
             return await self._yanit(ctx, _t("❌ **{ad}** adında bir liste bulunamadı.", ad=ad))
         await self._calmalistesi_oynat_dahili(ctx, bulunan, karistir=karistir, basa=False)
 
-    @calmalistesi.command(name="cikar", description="Listenden bir parçayı çıkarır")
+    @calmalistesi.command(name="cikar", aliases=["çıkar", "remove", "rm"], description="Listenden bir parçayı çıkarır")
     @app_commands.describe(ad="Liste adı", numara="Parça numarası")
     async def cl_cikar(self, ctx, ad: str, numara: str):
         liste_id = mdb.liste_bul(ctx.author.id, ad, genel_ara=False)
@@ -1364,7 +1393,7 @@ class Muzik(commands.Cog):
         baslik = mdb.listeden_parca_cikar(liste_id, _tam_sayi(numara) or 0)
         await self._yanit(ctx, _t("🗑️ **{baslik}** listeden çıkarıldı.", baslik=baslik) if baslik else _t("❌ Geçersiz numara."))
 
-    @calmalistesi.command(name="sil", description="Kişisel listeni tamamen siler")
+    @calmalistesi.command(name="sil", aliases=["delete", "del"], description="Kişisel listeni tamamen siler")
     @app_commands.describe(ad="Liste adı")
     async def cl_sil(self, ctx, *, ad: str):
         liste_id = mdb.liste_bul(ctx.author.id, ad, genel_ara=False)
@@ -1414,8 +1443,9 @@ class Muzik(commands.Cog):
         embed = discord.Embed(color=MUZIK_RENGI, title=_t("⚙️ Müzik Ayarları"))
         embed.add_field(name=_t("🎚️ DJ rolü"), value=f"<@&{a['dj_rol_id']}>" if a['dj_rol_id'] else _t("Kapalı (herkes kontrol eder)"))
         oylama = bool(a['dj_rol_id'] or a['oylama_aktif'])
+        oylama_durum = _t("Açık") if oylama else _t("Kapalı")
         embed.add_field(name=_t("🗳️ Oylamalı atla"),
-                        value=f"{_t("Açık") if oylama else _t("Kapalı")} · %{int(a['oylama_orani'] * 100)}"
+                        value=f"{oylama_durum} · %{int(a['oylama_orani'] * 100)}"
                               + (_t(" (DJ rolü ayarlı → otomatik)") if a['dj_rol_id'] and not a['oylama_aktif'] else ""))
         embed.add_field(name=_t("🔊 Ses"), value=_t("Varsayılan %{a} · Son %{d3}", a=a['varsayilan_ses'], d3=a['son_ses'] if a['son_ses'] is not None else '—'))
         embed.add_field(name=_t("🌙 7/24 modu"), value=_t("Açık") if a['surekli_mod'] else _t("Kapalı"))
@@ -1433,7 +1463,7 @@ class Muzik(commands.Cog):
                           + ("" if sadece_yonetici else _t(" ya da DJ rolü")) + _t(" gerekli."))
         return False
 
-    @commands.hybrid_group(name="muzikayar", aliases=["müzikayar", "muzikayarlar", "müzikayarlar"],
+    @commands.hybrid_group(name="muzikayar", aliases=["müzikayar", "muzikayarlar", "müzikayarlar", "musicsettings", "msettings"],
                            fallback="goster", invoke_without_command=True, description="Sunucunun müzik ayarları")
     async def muzikayar(self, ctx):
         await self._yanit(ctx, embed=self._ayarlar_embedi(ctx.guild), sure=60)
@@ -1446,7 +1476,7 @@ class Muzik(commands.Cog):
         mdb.muzik_ayar_guncelle(ctx.guild.id, dj_rol_id=rol.id if rol else None)
         await self._yanit(ctx, _t("🎚️ DJ rolü: {mention}. Artık kontrol komutları DJ'lere/yöneticilere özel, diğerleri oyla atlar.", mention=rol.mention) if rol else _t("🎚️ DJ sistemi kapatıldı — herkes kontrol edebilir."))
 
-    @muzikayar.command(name="oylama", description="Oylamalı atla: aç / kapat ya da gereken oran (ör. 60)")
+    @muzikayar.command(name="oylama", aliases=["voteskip", "vote"], description="Oylamalı atla: aç / kapat ya da gereken oran (ör. 60)")
     @app_commands.describe(deger="aç, kapat ya da yüzde (10-100)")
     async def ayar_oylama(self, ctx, deger: str = None):
         if not await self._ayar_kontrol(ctx):
@@ -1466,7 +1496,7 @@ class Muzik(commands.Cog):
         await self._yanit(ctx, _t("🗳️ Oylamalı atla: **{d1}**", d1=_t("Açık") if yeni else _t("Kapalı"))
                           + (_t(" (DJ rolü ayarlı olduğu için DJ olmayanlar yine oyla atlar)") if not yeni and a['dj_rol_id'] else ""))
 
-    @muzikayar.command(name="varsayilanses", description="Yeni oturumların başlangıç sesi (0-150)")
+    @muzikayar.command(name="varsayilanses", aliases=["defaultvolume", "defvol"], description="Yeni oturumların başlangıç sesi (0-150)")
     @app_commands.describe(seviye="0-150")
     async def ayar_ses(self, ctx, seviye: str):
         if not await self._ayar_kontrol(ctx):
@@ -1477,7 +1507,7 @@ class Muzik(commands.Cog):
         mdb.muzik_ayar_guncelle(ctx.guild.id, varsayilan_ses=n, son_ses=None)
         await self._yanit(ctx, _t("🔊 Varsayılan ses **%{n}** (hatırlanan son ses sıfırlandı).", n=n))
 
-    @muzikayar.command(name="surekli", aliases=["247", "7/24"], description="7/24 modu: boşta/yalnızken kanaldan ayrılma")
+    @muzikayar.command(name="surekli", aliases=["247", "7/24", "alwayson"], description="7/24 modu: boşta/yalnızken kanaldan ayrılma")
     @app_commands.describe(durum="aç / kapat")
     async def ayar_surekli(self, ctx, durum: str = None):
         if not await self._ayar_kontrol(ctx):
@@ -1489,7 +1519,7 @@ class Muzik(commands.Cog):
         mdb.muzik_ayar_guncelle(ctx.guild.id, surekli_mod=int(yeni))
         await self._yanit(ctx, _t("🌙 7/24 modu: **{d1}**", d1=_t("Açık") if yeni else _t("Kapalı")))
 
-    @muzikayar.command(name="otomatik", description="Otomatik oynatmanın varsayılan durumu")
+    @muzikayar.command(name="otomatik", aliases=["autoplay"], description="Otomatik oynatmanın varsayılan durumu")
     @app_commands.describe(durum="aç / kapat")
     async def ayar_otomatik(self, ctx, durum: str = None):
         if not await self._ayar_kontrol(ctx):
@@ -1505,7 +1535,7 @@ class Muzik(commands.Cog):
             await self.panel_guncelle(ctx.guild.id)
         await self._yanit(ctx, _t("📻 Otomatik oynatma (varsayılan): **{d1}**", d1=_t("Açık") if yeni else _t("Kapalı")))
 
-    @muzikayar.command(name="zamanasimi", description="Boşta ya da kanalda yalnız kalınca kaç dakika sonra ayrılsın")
+    @muzikayar.command(name="zamanasimi", aliases=["timeout", "idletimeout"], description="Boşta ya da kanalda yalnız kalınca kaç dakika sonra ayrılsın")
     @app_commands.describe(sure="Dakika (ör. 3) ya da 90s, 1:30 (30 sn – 60 dk)")
     async def ayar_zamanasimi(self, ctx, sure: str):
         if not await self._ayar_kontrol(ctx):
@@ -1520,7 +1550,7 @@ class Muzik(commands.Cog):
         mdb.muzik_ayar_guncelle(ctx.guild.id, bosta_zaman_asimi=saniye)
         await self._yanit(ctx, _t("⏱️ Boşta/yalnız kalınca **{sure_metni}** sonra ayrılacağım (7/24 kapalıyken).", sure_metni=sure_metni(saniye)))
 
-    @muzikayar.command(name="normalizasyon", description="Ses normalizasyonunun varsayılan durumu")
+    @muzikayar.command(name="normalizasyon", aliases=["normalize"], description="Ses normalizasyonunun varsayılan durumu")
     @app_commands.describe(durum="aç / kapat")
     async def ayar_normalizasyon(self, ctx, durum: str = None):
         if not await self._ayar_kontrol(ctx):
@@ -1532,7 +1562,7 @@ class Muzik(commands.Cog):
         mdb.muzik_ayar_guncelle(ctx.guild.id, normalizasyon=int(yeni))
         await self._yanit(ctx, _t("📶 Normalizasyon (varsayılan): **{d1}** — yeni oturumlarda geçerli; şu anki oturum için `/filtre normalizasyon`.", d1=_t("Açık") if yeni else _t("Kapalı")))
 
-    @muzikayar.command(name="istekkanali", description="Şarkı istek kanalı: bu kanala yazılan her mesaj aranıp kuyruğa eklenir")
+    @muzikayar.command(name="istekkanali", aliases=["requestchannel", "reqchannel"], description="Şarkı istek kanalı: bu kanala yazılan her mesaj aranıp kuyruğa eklenir")
     @app_commands.describe(kanal="Kanal (boş: yeni kanal oluştur)", kapat="'kapat' yazarsan istek kanalı kapatılır")
     async def ayar_istek(self, ctx, kanal: discord.TextChannel = None, kapat: str = None):
         if not await self._ayar_kontrol(ctx, sadece_yonetici=True):
@@ -1559,7 +1589,7 @@ class Muzik(commands.Cog):
         await self._panel_yaz_simdi(ctx.guild.id)
         await self._yanit(ctx, _t("📨 Şarkı istek kanalı: {mention} — oraya yazılan her mesaj aranıp kuyruğa eklenir, kontrol paneli de orada durur.", mention=kanal.mention))
 
-    @commands.hybrid_command(name="oygec", aliases=["oyilegec"],
+    @commands.hybrid_command(name="oygec", aliases=["oyilegec", "voteskipmode"],
                              description="Oylamalı atlamayı açar/kapatır ya da gereken oranı ayarlar")
     @app_commands.describe(durum="aç / kapat ya da gereken oran (ör. 60)")
     async def oygec(self, ctx, durum: str = None):
@@ -1570,7 +1600,7 @@ class Muzik(commands.Cog):
     #  SAHİP: yt-dlp güncelleme
     # ══════════════════════════════════════════════
 
-    @commands.hybrid_command(name="ytdlpguncelle", aliases=["ytdlp", "ytdlpgüncelle"],
+    @commands.hybrid_command(name="ytdlpguncelle", aliases=["ytdlp", "ytdlpgüncelle", "updateytdlp"],
                              description="[Bot Sahibi] yt-dlp'yi venv'de günceller")
     @app_commands.describe(secenek="bekle: çalan şarkılar bitince yeniden başlat")
     @commands.is_owner()

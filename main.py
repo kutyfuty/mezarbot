@@ -117,13 +117,13 @@ if MUZIK_PROFILI:
     vagonlar = ['cogs.muzik', 'cogs.muzikbaba']
 elif MEMBER_PROFILI:
     # Mezar Cafe Topluluk & Mezarpoly bot hesabı (MezarMember): hesap eşleme, roller, destek/ticket ve İngilizce müzik
-    vagonlar = ['cogs.mezarpoly', 'cogs.destek', 'cogs.yonetim', 'cogs.muzik']
+    vagonlar = ['cogs.mezarpoly', 'cogs.destek', 'cogs.yonetim', 'cogs.muzik', 'cogs.durum_rotator']
 else:
     # Klasik MezarBot: genel çok sunuculu müzik, ses odası ve topluluk botu
     vagonlar = [
         'cogs.yonetim', 'cogs.yapayzeka', 'cogs.muzik', 'cogs.yardim',
         'cogs.ses_aktivite', 'cogs.durum_rotator',
-        'cogs.ozel_oda', 'cogs.sunucu_onay'
+        'cogs.ozel_oda'
     ]
     vagonlar += [c for c in EK_COGLAR if c not in vagonlar]   # config.json → ek_coglar (kuruluma özel)
 

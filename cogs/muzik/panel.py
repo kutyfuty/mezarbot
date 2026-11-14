@@ -84,9 +84,11 @@ def calma_embedi(oyn):
 
     gecen = oyn.konum()
     toplam = sure_metni(p.sure) if p.sure else "CANLI"
+    ses_ikon = '🔇' if oyn.ses == 0 else '🔉' if oyn.ses < 60 else '🔊'
+    ses_yazi = _t("**%{ses}**", ses=oyn.ses)
     satirlar = [
         ilerleme_cubugu(gecen, p.sure, 18),
-        f"`{sure_metni(gecen)} / {toplam}`  ·  {'🔇' if oyn.ses == 0 else '🔉' if oyn.ses < 60 else '🔊'} {_t("**%{ses}**", ses=oyn.ses)}"
+        f"`{sure_metni(gecen)} / {toplam}`  ·  {ses_ikon} {ses_yazi}"
         + (f"  ·  🎤 {_temiz(p.sanatci, 40)}" if p.sanatci and p.sanatci.casefold() not in (p.baslik or "").casefold() else ""),
     ]
     if oyn.otomatik_duraklatildi:

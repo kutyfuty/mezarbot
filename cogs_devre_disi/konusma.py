@@ -23,7 +23,7 @@ class Konusma(commands.Cog):
         # Erkek ses: derin ayar (yavaş + düşük perde); kadın sesi varsayılan kalır
         self.voice_ayar = {"tr-TR-AhmetNeural": {"rate": "-10%", "pitch": "-30Hz"}}
 
-    @commands.hybrid_command(description="Metni sesli kanalda seslendir", name="konus")
+    @commands.hybrid_command(description="Metni sesli kanalda seslendir", name="konus", aliases=["tts", "speak"])
     @discord.app_commands.describe(metin="Seslendirilecek metin", ses="Ses türü (erkek veya kadın)")
     @discord.app_commands.choices(ses=[
         discord.app_commands.Choice(name="Erkek (Ahmet)", value="erkek"),
@@ -34,7 +34,7 @@ class Konusma(commands.Cog):
         secilen_ses = self.female_voice if str(ses).lower() in ("kadin", "kadın", "female", "emel") else self.male_voice
         await self._seslendir(ctx, metin, secilen_ses)
 
-    @commands.command(name="konusm")
+    @commands.command(name="konusm", aliases=["ttsf", "speakf"])
     async def konusm_prefix(self, ctx, *, metin: str):
         """[VIP ONLY] Yazılan metni KADIN sesiyle seslendirir. Kullanım: !konusm <mesaj>"""
         await self._seslendir(ctx, metin, self.female_voice)
@@ -111,7 +111,7 @@ class Konusma(commands.Cog):
             except Exception as e:
                 logger.error(f"Dosya silme hatası: {e}")
 
-    @commands.hybrid_command(description="Seslendirme için bağlanan botu kanaldan çıkar")
+    @commands.hybrid_command(aliases=["ttsleave"], description="Seslendirme için bağlanan botu kanaldan çıkar")
     async def ayril(self, ctx):
         """Botu ses kanalından çıkarır."""
         if ctx.voice_client:

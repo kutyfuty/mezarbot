@@ -12,10 +12,13 @@ Protokol (satır başına bir JSON):
 stdin kapanınca süreç biter. Bu dosya paket içinden import EDİLMEZ (veritabanı vb. yüklenmez);
 kaynaklar.IsciHavuzu tarafından `python isci.py` olarak başlatılır.
 """
+import contextlib
 import json
 import os
 import re
+import shutil
 import sys
+import tempfile
 import threading
 import time
 import urllib.error
@@ -77,12 +80,31 @@ def _kirp_flat(bilgi):
     return {"title": bilgi.get("title"), "playlist_count": bilgi.get("playlist_count"), "entries": ogeler}
 
 
+@contextlib.contextmanager
+def _gecici_cerez(kaynak_yol):
+    """Ana cookie dosyasını yt-dlp yazmasından korumak için geçici kopya verir."""
+    if not kaynak_yol or not os.path.isfile(kaynak_yol):
+        yield kaynak_yol
+        return
+    gecici_dizin = tempfile.mkdtemp(prefix="mezarbot_ck_")
+    kopya_yol = os.path.join(gecici_dizin, "cookies.txt")
+    try:
+        shutil.copyfile(kaynak_yol, kopya_yol)
+        os.chmod(kopya_yol, 0o600)
+        yield kopya_yol
+    finally:
+        shutil.rmtree(gecici_dizin, ignore_errors=True)
+
+
 def cikar(secenekler, hedef, mod="tam"):
     import yt_dlp
     secenekler = dict(secenekler)
     secenekler["logger"] = _SessizLogger()
-    with yt_dlp.YoutubeDL(secenekler) as ydl:
-        bilgi = ydl.extract_info(hedef, download=False)
+    with _gecici_cerez(secenekler.get("cookiefile")) as gecici_yol:
+        if gecici_yol:
+            secenekler["cookiefile"] = gecici_yol
+        with yt_dlp.YoutubeDL(secenekler) as ydl:
+            bilgi = ydl.extract_info(hedef, download=False)
     return _kirp_flat(bilgi) if mod == "flat" else _kirp_tam(bilgi)
 
 

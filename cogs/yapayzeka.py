@@ -1,15 +1,8 @@
-import discord
-from discord import app_commands
 from discord.ext import commands, tasks
-import replicate
-import aiohttp
 import asyncio
 import time
-import datetime
-import os
 import logging
 from collections import defaultdict
-from database import db, bouncer_kontrol, vip_kontrol
 from groq_yardimci import groq_istemci, groq_tamamla
 from dil import _t
 
@@ -21,8 +14,6 @@ DISCORD_MESAJ_SINIRI = 1900
 class YapayZeka(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.ciz_kisisel_sure = {}
-        self.ciz_global_sure = 0
         self.client = None
         self.ai_aktif = False
         # Konuşma geçmişi — her (sunucu_id, kullanici_id) çifti için son 5 mesaj.
@@ -39,26 +30,11 @@ class YapayZeka(commands.Cog):
             self.ai_aktif = True
             logger.info("✅ Groq AI motoru aktif.")
         else:
-            logger.warning("GROQ_API_KEY boş — AI sohbet devre dışı; !ciz prompt'ları çevrilmeden kullanılır.")
-        if not (os.getenv("REPLICATE_API_TOKEN") or "").strip():
-            logger.warning("REPLICATE_API_TOKEN boş — !ciz (resim çizimi) devre dışı.")
+            logger.warning("GROQ_API_KEY boş — AI sohbet devre dışı.")
 
-        self._kisilik = {}  # {kullanici_id: "normal" | "komik" | "akademik" | "agresif"}
-        self._kisilik_promptlari = {
-            "normal": (
-                _t("Senin adın MezarBot. Discord'da takılan sıradan birisin. Sadece gerektiği kadar konuş. Genelde küçük harfle yaz. Kısa ve öz cevaplar ver. Emoji kullanabilirsin ama abartma. Eğer birisi sana kötü bir şey söylerse espriyle karşılık ver.")
-            ),
-            "komik": (
-                _t("Senin adın MezarBot. Sen çok komik ve eğlenceli bir botsun. Her şeye espriyle yaklaş, şakalar yap, komik benzetmeler kullan. Argo ve günlük dil kullan. Emojileri bol kullan. Ciddi sorulara bile hafif bir espriyle cevap ver.")
-            ),
-            "akademik": (
-                _t("Senin adın MezarBot. Sen bilgili ve akademik bir asistansın. Sorulara detaylı, bilimsel ve düzgün Türkçe ile cevap ver. Gerektiğinde kaynak belirt. Formal bir dil kullan. Açıklayıcı ve öğretici ol.")
-            ),
-            "agresif": (
-                _t("Senin adın MezarBot. Sen sert, laf sokucu ama eğlenceli bir botsun. İğneleyici ve alaycı cevaplar ver ama kırıcı olma. Rakip takıma laf sokar gibi konuş. Kendine güvenli ol. Küçük harfle ve günlük dil ile yaz.")
-            ),
-        }
-        self.mezar_prompt = self._kisilik_promptlari["normal"]
+        self.mezar_prompt = (
+            _t("Senin adın MezarBot. Discord'da takılan sıradan birisin. Sadece gerektiği kadar konuş. Genelde küçük harfle yaz. Kısa ve öz cevaplar ver. Emoji kullanabilirsin ama abartma. Eğer birisi sana kötü bir şey söylerse espriyle karşılık ver.")
+        )
 
         # Bellek temizleme görevi
         self.bellek_temizle.start()
@@ -72,9 +48,6 @@ class YapayZeka(commands.Cog):
     async def bellek_temizle(self):
         """30 dakikadır aktif olmayan kullanıcıların konuşma geçmişini temizler."""
         su_an = time.time()
-        temizlenecek_ciz = [uid for uid, t in self.ciz_kisisel_sure.items() if su_an - t > 300]
-        for uid in temizlenecek_ciz:
-            del self.ciz_kisisel_sure[uid]
 
         # Konuşma geçmişi: 30 dakikadır aktif olmayan kullanıcıları temizle
         temizlenecek_gecmis = [uid for uid, t in self._gecmis_son_aktif.items() if su_an - t > 1800]
@@ -87,37 +60,17 @@ class YapayZeka(commands.Cog):
         for uid in temizlenecek_cd:
             del self._ai_cooldown[uid]
 
-    async def prompt_cevir(self, metin):
-        if not self.ai_aktif or not self.client:
-            return metin
-
-        def istek_gonder():
-            try:
-                ceviri = groq_tamamla(self.client, [
-                    {"role": "system",
-                     "content": "You are a prompt translator. Translate the user's Turkish image request into a highly detailed English prompt suitable for Flux. Reply ONLY with the English translation."},
-                    {"role": "user", "content": metin},
-                ], temperature=0.3, max_tokens=600)
-                return ceviri or metin
-            except Exception as e:
-                logger.error(f"Prompt çevirme hatası: {e}")
-                return metin
-
-        return await asyncio.to_thread(istek_gonder)
-
-    async def ai_cevap_uret(self, anahtar, kullanici_id, mesaj):
-        """anahtar: (sunucu_id, kullanici_id) — konuşma geçmişi sunucu bazlı tutulur.
-        Kişilik tercihi kullanıcı bazlıdır (kullanici_id)."""
+    async def ai_cevap_uret(self, anahtar, mesaj):
+        """anahtar: (sunucu_id, kullanici_id) — konuşma geçmişi sunucu bazlı tutulur."""
         if not self.ai_aktif or not self.client:
             return _t("Beynim yok şu an.")
 
         # Geçmişin kopyasını al (thread safety — list shared between event loop and thread)
         gecmis_kopya = list(self.konusma_gecmisi[anahtar])
+        aktif_prompt = self.mezar_prompt
 
         def istek_gonder():
             try:
-                kisilik = self._kisilik.get(kullanici_id, "normal")
-                aktif_prompt = self._kisilik_promptlari.get(kisilik, self.mezar_prompt)
                 mesajlar = [{"role": "system", "content": aktif_prompt}]
                 mesajlar.extend(gecmis_kopya)
                 mesajlar.append({"role": "user", "content": mesaj})
@@ -143,132 +96,6 @@ class YapayZeka(commands.Cog):
 
         return cevap
 
-    @commands.hybrid_command(name="ciz", description="Yapay zekâ ile resim çiz / Draw an image with AI")
-    async def ciz(self, ctx, *, prompt: str):
-        """AI ile resim çizer. Kullanım: !ciz bir kedi uzayda / !draw a cat in space"""
-        if len(prompt) > 500:
-            return await ctx.send(_t("❌ Prompt çok uzun! (Maks 500 karakter)"), delete_after=5)
-        if not (os.getenv("REPLICATE_API_TOKEN") or "").strip():
-            return await ctx.send(_t("❌ Çizim özelliği şu an devre dışı."), delete_after=7)
-        vip_mi = vip_kontrol(ctx.author)
-        su_an = time.time()
-        kullanici_id = ctx.author.id
-
-        if not vip_mi:
-            if su_an - self.ciz_global_sure < 45:
-                return await ctx.send(
-                    _t("⏳ **Global Soğuma:** Bot resim çiziyor. Lütfen **{int} sn** bekle.", int=int(45 - (su_an - self.ciz_global_sure))),
-                    delete_after=7)
-            son_kullanim = self.ciz_kisisel_sure.get(kullanici_id, 0)
-            if su_an - son_kullanim < 60:
-                return await ctx.send(
-                    _t("⏳ **Kişisel Soğuma:** Yeni istek için **{int} sn** bekle.", int=int(60 - (su_an - son_kullanim))),
-                    delete_after=7)
-
-        bugun = datetime.date.today().isoformat()
-        c = db.cursor()
-        c.execute("SELECT kalan_hak, son_kullanim FROM cizim_haklari WHERE kullanici_id = ?", (kullanici_id,))
-        kayit = c.fetchone()
-        kalan_hak = 5
-
-        if kayit:
-            kayitli_hak, son_tarih = kayit[0], kayit[1]
-            if son_tarih != bugun:
-                kalan_hak = 5
-            else:
-                kalan_hak = kayitli_hak
-
-        if not vip_mi and kalan_hak <= 0:
-            return await ctx.send(_t("❌ **{name}**, bugünkü bedava çizim hakkını tükettin.", name=ctx.author.name), delete_after=7)
-
-        yeni_hak = kalan_hak
-        if not vip_mi:
-            yeni_hak -= 1
-            self.ciz_kisisel_sure[kullanici_id] = su_an
-            self.ciz_global_sure = su_an
-            c.execute("REPLACE INTO cizim_haklari (kullanici_id, kalan_hak, son_kullanim) VALUES (?, ?, ?)",
-                       (kullanici_id, yeni_hak, bugun))
-            db.commit()
-
-        hak_metni = _t("SINIRSIZ (VIP)") if vip_mi else f"{yeni_hak}/5"
-        bekleme = await ctx.send(
-            _t("🚀 **{name}**, motor ateşlendi (Kalan Hak: **{hak_metni}**). *Çevriliyor...*", name=ctx.author.name, hak_metni=hak_metni))
-        ingilizce_prompt = await self.prompt_cevir(prompt)
-
-        async def resim_istegi():
-            token = os.getenv("REPLICATE_API_TOKEN")
-            headers = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-                "User-Agent": "MezarBot/1.0"
-            }
-            payload = {
-                "input": {
-                    "prompt": ingilizce_prompt,
-                    "num_outputs": 1,
-                    "aspect_ratio": "1:1",
-                    "output_format": "png"
-                }
-            }
-            async with aiohttp.ClientSession(headers=headers) as session:
-                async with session.post(
-                    "https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions",
-                    json=payload
-                ) as resp:
-                    if resp.status not in (200, 201):
-                        err_text = await resp.text()
-                        raise ValueError(f"Replicate API hatası ({resp.status}): {err_text}")
-                    data = await resp.json()
-                    get_url = data.get("urls", {}).get("get")
-                    if not get_url:
-                        raise ValueError("Replicate get URL dönmedi")
-
-                for _ in range(45):
-                    await asyncio.sleep(1)
-                    async with session.get(get_url) as resp:
-                        if resp.status == 200:
-                            poll_data = await resp.json()
-                            status = poll_data.get("status")
-                            if status == "succeeded":
-                                out = poll_data.get("output")
-                                if out and isinstance(out, list) and len(out) > 0:
-                                    return str(out[0])
-                                raise ValueError("Replicate boş çıktı döndü")
-                            elif status in ("failed", "canceled"):
-                                raise ValueError(poll_data.get("error") or "Çizim işlemi iptal/başarısız oldu")
-                raise TimeoutError(_t("Çizim işlemi zaman aşımına uğradı (45 sn)"))
-
-        try:
-            resim_linki = await resim_istegi()
-            embed = discord.Embed(color=0xEB459E, timestamp=datetime.datetime.now(datetime.timezone.utc))
-            embed.set_author(name=_t("🖼️ MezarBot Çizim"), icon_url=ctx.author.display_avatar.url)
-            embed.description = (
-                f"> 🇹🇷 {prompt}\n"
-                f"> 🇬🇧 *{ingilizce_prompt}*"
-            )
-            embed.set_image(url=resim_linki)
-            embed.set_footer(text=_t("MezarBot • Flux Schnell │ Kalan Hak: {hak_metni}", hak_metni=hak_metni))
-            await bekleme.delete()
-            await ctx.send(embed=embed)
-        except Exception as e:
-            logger.error(f"Çizim Hatası: {e}")
-            if not vip_mi:
-                self.ciz_kisisel_sure[kullanici_id] = 0
-                c = db.cursor()
-                c.execute("UPDATE cizim_haklari SET kalan_hak = kalan_hak + 1 WHERE kullanici_id = ?",
-                           (kullanici_id,))
-                db.commit()
-            try:
-                await bekleme.edit(content=_t("❌ Çizim Hatası: API sorunu. Hakkın iade edildi."))
-            except Exception:
-                pass
-
-    @commands.hybrid_command(name="draw", description="Draw an image with AI")
-    @app_commands.describe(prompt="Description of the image")
-    async def draw(self, ctx, *, prompt: str):
-        """Draw an image with AI. Usage: /draw a cat in space or !draw a cat in space"""
-        await self.ciz(ctx, prompt=prompt)
-
     @commands.hybrid_command(name="sifirla", aliases=["reset"], description="Yapay zekâ sohbet geçmişini sıfırla / Reset AI chat history")
     async def sifirla(self, ctx):
         """AI sohbet geçmişini (bu sunucudaki) sıfırlar."""
@@ -276,23 +103,6 @@ class YapayZeka(commands.Cog):
         self.konusma_gecmisi.pop(anahtar, None)
         self._gecmis_son_aktif.pop(anahtar, None)
         await ctx.send(_t("🧹 Sohbet geçmişin sıfırlandı!"), delete_after=5)
-
-    @commands.hybrid_command(description="Yapay zekânın kişiliğini seç")
-    async def kisilik(self, ctx, mod: str = None):
-        """AI kişilik modunu değiştirir. Kullanım: !kisilik komik"""
-        modlar = list(self._kisilik_promptlari.keys())
-        if not mod or mod.lower() not in modlar:
-            mevcut = self._kisilik.get(ctx.author.id, "normal")
-            mod_listesi = " / ".join(f"**{m}**" if m != mevcut else f"~~{m}~~" for m in modlar)
-            return await ctx.send(
-                _t("🎭 Mevcut kişilik: **{mevcut}**\nKullanım: `!kisilik <mod>`\nModlar: {mod_listesi}", mevcut=mevcut, mod_listesi=mod_listesi),
-                delete_after=10)
-        mod = mod.lower()
-        self._kisilik[ctx.author.id] = mod
-        # Geçmişi sıfırla (yeni kişilikle temiz başla)
-        self.konusma_gecmisi.pop((ctx.guild.id if ctx.guild else 0, ctx.author.id), None)
-        emoji_map = {"normal": "😐", "komik": "😂", "akademik": "🎓", "agresif": "😈"}
-        await ctx.send(_t("{get} AI kişilik modu **{mod}** olarak ayarlandı!", get=emoji_map.get(mod, '🎭'), mod=mod), delete_after=7)
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -309,7 +119,7 @@ class YapayZeka(commands.Cog):
                 self._ai_cooldown[message.author.id] = su_an
 
                 async with message.channel.typing():
-                    cvp = await self.ai_cevap_uret((message.guild.id, message.author.id), message.author.id, temiz)
+                    cvp = await self.ai_cevap_uret((message.guild.id, message.author.id), temiz)
                     await message.reply(cvp)
 
 

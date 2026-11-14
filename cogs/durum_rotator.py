@@ -2,22 +2,28 @@ import discord
 from discord.ext import commands, tasks
 import itertools
 
-from yapilandirma import DURUM_MESAJLARI
+from yapilandirma import DURUM_MESAJLARI, MEMBER_PROFILI
 
 # Botun GERÇEK aktif özellikleri — sırayla döner (her 25 sn). config.json → durum_mesajlari ile değiştirilebilir.
 VARSAYILAN_DURUMLAR = [
     ("/yardim / /help",                        "watching"),
     ("/oynat ile kesintisiz müzik",            "listening"),
-    ("/ciz / /draw ile yapay zekâ",            "playing"),
-    ("/cevir ile anlık çeviri",                "watching"),
     ("/oda ile özel ses odası",                "listening"),
     ("/sesstat ile ses liderliği",             "watching"),
     ("/ayarlar / /settings ile yönetim",       "watching"),
 ]
+MEMBER_DURUMLAR = [
+    ("mezarpoly.fun • 8 online games",         "playing"),
+    ("Mezar Bilardosu • 8-Ball Pool",          "playing"),
+    ("/play • 24/7 music",                     "listening"),
+    ("/mezarpoly • link account",              "playing"),
+    ("Mezar Café Community",                   "watching"),
+]
 _TIPLER = {"playing": discord.ActivityType.playing, "watching": discord.ActivityType.watching,
            "listening": discord.ActivityType.listening, "competing": discord.ActivityType.competing}
+_secilen_liste = MEMBER_DURUMLAR if MEMBER_PROFILI else (DURUM_MESAJLARI or VARSAYILAN_DURUMLAR)
 PRESENCE_LISTESI = [(metin, _TIPLER.get(str(tip).lower(), discord.ActivityType.watching))
-                    for metin, tip in (DURUM_MESAJLARI or VARSAYILAN_DURUMLAR)]
+                    for metin, tip in _secilen_liste]
 
 
 class DurumRotator(commands.Cog):
